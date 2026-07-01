@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'pantallas/pantalla_carga.dart'; // <-- O la ruta exacta donde guardaste este archivo
+import 'src/views/screens/splash_screen.dart';
 
 void main() {
   runApp(const CazadoresApp());
@@ -10,10 +10,10 @@ class CazadoresApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp( // <-- Agrega const aquí si es posible
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Cazadores de Pigmentos',
-      home: const PantallaDeCarga(), // <-- Debe apuntar directamente aquí
+      home: SplashScreen(),
     );
   }
 }

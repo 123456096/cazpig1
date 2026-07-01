@@ -1,33 +1,42 @@
 import 'package:flutter/material.dart';
-import 'menu_pantalla.dart'; 
+import '../../controllers/registro_controller.dart';
+import '../../controllers/user_controller.dart';
+import '../../theme/app_theme.dart';
+import '../widgets/game_button.dart';
+import 'menu_principal_screen.dart';
 
-class RegistroPantalla extends StatefulWidget {
-  const RegistroPantalla({super.key});
+class RegistroScreen extends StatefulWidget {
+  const RegistroScreen({super.key});
 
   @override
-  State<RegistroPantalla> createState() => _RegistroPantallaState();
+  State<RegistroScreen> createState() => _RegistroScreenState();
 }
 
-class _RegistroPantallaState extends State<RegistroPantalla> {
+class _RegistroScreenState extends State<RegistroScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _edadController = TextEditingController();
+  final _controller = RegistroController();
+  bool _isOffline = false;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _edadController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   void _intentarRegistro() {
     if (_formKey.currentState!.validate()) {
+      final user = _controller.registrarUsuario();
+      UserController().inicializarUsuario(
+        email: user.email,
+        age: user.age,
+        isOffline: _isOffline,
+      );
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => MenuPrincipal(
-            correo: _emailController.text,
-            edad: _edadController.text,
+          builder: (context) => MenuPrincipalScreen(
+            correo: user.email,
+            edad: user.age,
           ),
         ), 
       );
@@ -36,35 +45,10 @@ class _RegistroPantallaState extends State<RegistroPantalla> {
 
   @override
   Widget build(BuildContext context) {
-    // Reutilizamos el degradado colorido del juego para mantener la armonía
-    final Gradient degradadoGlow = LinearGradient(
-      colors: [
-        Colors.amber.shade400,
-        Colors.orange.shade400,
-        Colors.deepOrange.shade300, // Tono rojizo intermedio (sustituto de Colors.coral)
-        Colors.pinkAccent.shade100,
-        Colors.purpleAccent.shade100
-      ],
-      begin: Alignment.centerLeft,
-      end: Alignment.centerRight,
-    );
-
     return Scaffold(
       body: Container(
-        // Fondo degradado pastel idéntico a tu pantalla de carga
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xffFFA2A2),
-              Color(0xffFFF085),
-              Color(0xffA4F4CF),
-              Color(0xffB8E6FE),
-              Color(0xffDAB2FF),
-              Color(0xffFFCCD3),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          gradient: AppTheme.fondoPastel,
         ),
         child: Center(
           child: SingleChildScrollView(
@@ -74,9 +58,8 @@ class _RegistroPantallaState extends State<RegistroPantalla> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // --- TÍTULO CON SHADERMASK (ESTILO GLOW) ---
                   ShaderMask(
-                    shaderCallback: (bounds) => degradadoGlow.createShader(bounds),
+                    shaderCallback: (bounds) => AppTheme.degradadoGlow.createShader(bounds),
                     child: const Text(
                       "Registro de Jugador",
                       textAlign: TextAlign.center,
@@ -97,15 +80,14 @@ class _RegistroPantallaState extends State<RegistroPantalla> {
                   ),
                   const SizedBox(height: 30),
 
-                  // --- TARJETA CONTENEDORA BLANCA TRANSLÚCIDA ---
                   Container(
                     padding: const EdgeInsets.all(24.0),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.85), // Blanco suave que deja ver el fondo
+                      color: Colors.white.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withValues(alpha: 0.08),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),
@@ -117,60 +99,50 @@ class _RegistroPantallaState extends State<RegistroPantalla> {
                         Icon(Icons.palette_outlined, size: 50, color: Colors.deepOrange.shade300),
                         const SizedBox(height: 24),
 
-                        // Campo Correo
                         TextFormField(
-                          controller: _emailController,
+                          controller: _controller.emailController,
                           keyboardType: TextInputType.emailAddress,
                           style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
                           decoration: _inputDecoration('Correo Electrónico', Icons.email_outlined),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) return 'Ingresa tu correo';
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return 'Correo inválido';
-                            return null;
-                          },
+                          validator: _controller.validarEmail,
                         ),
                         const SizedBox(height: 20),
 
-                        // Campo Edad
                         TextFormField(
-                          controller: _edadController,
+                          controller: _controller.edadController,
                           keyboardType: TextInputType.number,
                           style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
                           decoration: _inputDecoration('Edad', Icons.cake_outlined),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) return 'Ingresa tu edad';
-                            final edad = int.tryParse(value);
-                            if (edad == null || edad <= 0 || edad > 120) return 'Edad inválida';
-                            return null;
+                          validator: _controller.validarEdad,
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Switch de Modo Offline
+                        SwitchListTile(
+                          title: const Text(
+                            'Modo Offline',
+                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 14),
+                          ),
+                          subtitle: const Text(
+                            'Juega localmente guardando el progreso en el dispositivo',
+                            style: TextStyle(fontSize: 11),
+                          ),
+                          secondary: Icon(Icons.cloud_off_rounded, color: Colors.deepOrange.shade300),
+                          value: _isOffline,
+                          onChanged: (bool value) {
+                            setState(() => _isOffline = value);
                           },
                         ),
                         const SizedBox(height: 30),
 
-                        // --- BOTÓN LLAMATIVO CON DEGRADADO ---
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            gradient: degradadoGlow,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.deepOrange.shade300.withOpacity(0.4),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: _intentarRegistro,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent, // Transparente para notar el degradado del contenedor
-                              shadowColor: Colors.transparent,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            child: const Text(
-                              '¡Comenzar Aventura!', 
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
+                        // Botón Mecánico 3D
+                        GameButton(
+                          backgroundColor: const Color(0xFF58CC02),
+                          shadowColor: const Color(0xFF46A302),
+                          onTap: _intentarRegistro,
+                          child: const Text(
+                            '¡Comenzar Aventura!', 
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                         ),
                       ],
@@ -185,14 +157,13 @@ class _RegistroPantallaState extends State<RegistroPantalla> {
     );
   }
 
-  // --- DISEÑO DE LOS INPUTS COMPATIBLE CON EL FONDO BLANCO ---
   InputDecoration _inputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500),
       prefixIcon: Icon(icon, color: Colors.deepOrange.shade300),
       filled: true,
-      fillColor: Colors.grey.shade50, // Un fondo grisáceo muy sutil para los textfields
+      fillColor: Colors.grey.shade50,
       contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       enabledBorder: OutlineInputBorder(
         borderSide: BorderSide(color: Colors.grey.shade300), 
