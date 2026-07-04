@@ -168,28 +168,28 @@ class UserController extends ChangeNotifier {
     }
   }
 
-  /// Verifica y calcula las rachas consecutivas de juego diario
+  /// Verifica y calcula las rachas consecutivas de juego diario.
+  ///
+  /// Compara el `DateTime.now()` actual con el último login guardado en
+  /// `SharedPreferences`. Si la diferencia es mayor a 48 horas, reinicia la
+  /// racha a 0; si está entre 24 y 48 horas, suma 1 al contador.
   Future<void> _verificarRachaDiaria() async {
     final prefs = await SharedPreferences.getInstance();
-    final lastPlayStr = prefs.getString("cazpig_last_play_date");
-    final today = DateTime.now();
-    final todayDateOnly = DateTime(today.year, today.month, today.day);
+    final lastLoginStr = prefs.getString("cazpig_last_login");
+    final now = DateTime.now();
 
-    if (lastPlayStr != null) {
-      final lastPlay = DateTime.parse(lastPlayStr);
-      final lastPlayDateOnly = DateTime(lastPlay.year, lastPlay.month, lastPlay.day);
-      final differenceInDays = todayDateOnly.difference(lastPlayDateOnly).inDays;
+    if (lastLoginStr != null) {
+      final lastLogin = DateTime.parse(lastLoginStr);
+      final differenceInHours = now.difference(lastLogin).inHours;
 
-      if (differenceInDays == 1) {
-        int nuevaRacha = currentUser.streak + 1;
-        _currentUser = currentUser.copyWith(streak: nuevaRacha);
-      } else if (differenceInDays > 1) {
-        _currentUser = currentUser.copyWith(streak: 1);
+      if (differenceInHours > 48) {
+        _currentUser = currentUser.copyWith(streak: 0);
+      } else if (differenceInHours >= 24) {
+        _currentUser = currentUser.copyWith(streak: currentUser.streak + 1);
       }
-    } else {
-      _currentUser = currentUser.copyWith(streak: 5); // 5 por defecto inicial
     }
-    await prefs.setString("cazpig_last_play_date", todayDateOnly.toIso8601String());
+
+    await prefs.setString("cazpig_last_login", now.toIso8601String());
     guardarProgresoLocal();
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../controllers/sound_manager.dart';
 import 'game_button.dart';
 
 class GameBottomSheet {
@@ -8,6 +9,7 @@ class GameBottomSheet {
     required int pigmentosGanados,
     required VoidCallback onContinuar,
   }) {
+    SoundManager().playSuccess();
     showModalBottomSheet(
       context: context,
       isDismissible: false,
@@ -82,6 +84,7 @@ class GameBottomSheet {
     required VoidCallback onReintentar,
     required VoidCallback onVolver,
   }) {
+    SoundManager().playError();
     showModalBottomSheet(
       context: context,
       isDismissible: false,

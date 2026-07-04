@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../controllers/sound_manager.dart';
 
 class GameButton extends StatefulWidget {
   final Widget child;
@@ -37,7 +38,10 @@ class _GameButtonState extends State<GameButton> {
 
     return GestureDetector(
       onTapDown: widget.enabled && widget.onTap != null
-          ? (_) => setState(() => _isPressed = true)
+          ? (_) {
+              SoundManager().playButtonTap();
+              setState(() => _isPressed = true);
+            }
           : null,
       onTapUp: widget.enabled && widget.onTap != null
           ? (_) {
