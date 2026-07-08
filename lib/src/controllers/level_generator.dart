@@ -4,7 +4,7 @@ import '../models/level_model.dart';
 class LevelGenerator {
   // Catálogo de mezclas para el modo Mezcla Cromática
   static final List<Map<String, dynamic>> _mezclasBase = [
-    {"objective": "VIOLETA", "colorHex": const Color(0xFF7B1FA2), "instruction": "Combina rojo + azul", "c1": Colors.red, "c2": Colors.blue},
+    {"objective": "VIOLETA", "colorHex": const Color(0xFF7B1FA2), "instruction": "El color hace que un diseño cobre vida. Puede llamar la atención, crear el ambiente e incluso influir en nuestras emociones y percepciones. En ocasiones puede resultar difícil saber en dónde empezar cuando se elige una paleta de colores para tu proyecto de diseño. En este nivel aprenderemos a mezclar colores.", "c1": Colors.red, "c2": Colors.blue},
     {"objective": "VERDE", "colorHex": const Color(0xFF388E3C), "instruction": "Combina azul + amarillo", "c1": Colors.blue, "c2": Colors.yellow},
     {"objective": "NARANJA", "colorHex": const Color(0xFFF57C00), "instruction": "Combina rojo + amarillo", "c1": Colors.red, "c2": Colors.yellow},
     {"objective": "ROSA", "colorHex": const Color(0xFFF48FB1), "instruction": "Combina rojo + blanco", "c1": Colors.red, "c2": Colors.white},
