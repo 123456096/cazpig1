@@ -37,7 +37,7 @@ dependencies:
   shared_preferences: ^2.2.0
   lottie: ^3.1.2
   audioplayers: 6.7.1
-  vibration: ^1.7.4
+  vibration: ^3.0.0
   firebase_core: ^3.15.0
   firebase_auth: ^5.0.0
   cloud_firestore: ^5.0.0
