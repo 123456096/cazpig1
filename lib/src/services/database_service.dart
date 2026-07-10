@@ -90,4 +90,45 @@ class DatabaseService {
       print("Error al guardar resultado del juego: $e");
     }
   }
+
+  // 4. Actualizar las vidas del usuario de forma directa
+  Future<void> updateUserLives(String uid, int nuevasVidas) async {
+    try {
+      await _db.collection('users').doc(uid).update({
+        'lives': nuevasVidas,
+      });
+      print("Vidas actualizadas a $nuevasVidas con éxito.");
+    } catch (e) {
+      print("Error al actualizar vidas: $e");
+    }
+  }
+
+  // 5. Sumar o restar pigmentos usando un incremento atómico en el servidor
+  Future<void> addPigments(String uid, int cantidad) async {
+    try {
+      await _db.collection('users').doc(uid).update({
+        'pigments': FieldValue.increment(cantidad),
+      });
+      print("Se modificaron los pigmentos en ($cantidad) con éxito.");
+    } catch (e) {
+      print("Error al actualizar pigmentos: $e");
+    }
+  }
+
+// 6. Marcar un nivel como completado y actualizar el nivel actual del usuario
+  Future<void> markLevelCompleted(String uid, int nivel) async {
+    try {
+      await _db.collection('users').doc(uid).update({
+        // Si usas un arreglo para el historial de niveles completados:
+        'completedLevels': FieldValue.arrayUnion(['nivel_$nivel']),
+        
+        // ESTO es lo que actualizará el número principal en tu base de datos al instante:
+        'currentLevelReached': nivel, 
+        'level': nivel, // O el campo exacto que manejes para la pantalla principal
+      });
+      print("¡Nivel $nivel actualizado en el perfil del usuario!");
+    } catch (e) {
+      print("Error al marcar nivel completado: $e");
+    }
+  }
 }
