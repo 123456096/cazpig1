@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
-// 1. IMPORTANTE: Importamos el servicio de la base de datos
 import '../services/database_service.dart';
+import '../services/logging_service.dart'; // Monitoreo A09
 
 class UserController extends ChangeNotifier {
   static final UserController _instance = UserController._internal();
@@ -10,25 +10,25 @@ class UserController extends ChangeNotifier {
   UserController._internal();
 
   UserModel? _currentUser;
-  
-  // 2. Instanciamos el servicio de base de datos
   final DatabaseService _dbService = DatabaseService();
 
   UserModel get currentUser => _currentUser ?? UserModel.initial(email: "invitado@correo.com", age: "0");
 
-  /// 3. MÉTODO AUXILIAR: Envía el estado actual a Firebase si no está offline
+  /// OBTENER ID SEGURO PARA FIRESTORE
+  String? get _docId {
+    if (_currentUser == null || currentUser.email == "invitado@correo.com" || currentUser.isOffline) return null;
+    return currentUser.email.replaceAll('.', '_');
+  }
+
+  /// Sincronización general (solo para inicio de sesión o cambios estructurales completos)
   Future<void> _sincronizarConFirebase() async {
-    // Si el usuario es invitado, no tiene email real o está offline, no subimos nada
-    if (_currentUser == null || currentUser.email == "invitado@correo.com" || currentUser.isOffline) return;
-    
+    final uid = _docId;
+    if (uid == null) return;
     try {
-      // Usamos el email como identificador único para el documento en Firebase (limpiando caracteres especiales si es necesario)
-      final String docId = currentUser.email.replaceAll('.', '_');
-      
-      await _dbService.saveUserProfile(docId, currentUser);
-      print("¡Progreso de ${currentUser.email} sincronizado en Firebase!");
-    } catch (e) {
-      print("Error al sincronizar con Firebase: $e");
+      await _dbService.saveUserProfile(uid, currentUser);
+      print("¡Progreso completo de ${currentUser.email} sincronizado en Firebase!");
+    } catch (e, stack) {
+      await LoggingService.logException(e, stack, reason: 'Error al sincronizar perfil completo en UserController');
     }
   }
 
@@ -37,14 +37,19 @@ class UserController extends ChangeNotifier {
     _currentUser = UserModel.initial(email: email, age: age, isOffline: isOffline);
     _verificarRachaDiaria();
     guardarProgresoLocal();
-    
-    // 4. Sincronizamos con Firebase al iniciar sesión
     _sincronizarConFirebase();
-    
     notifyListeners();
   }
 
-  /// Carga los datos guardados en el almacenamiento local
+  /// Inicializa el usuario tomando todos los datos desde un perfil existente (Firestore)
+  Future<void> inicializarDesdePerfil(UserModel profile) async {
+    _currentUser = profile;
+    _verificarRachaDiaria();
+    await guardarProgresoLocal();
+    notifyListeners();
+  }
+
+  /// Carga los datos guardados en el almacenamiento local (SharedPreferences)
   Future<void> cargarProgresoLocal() async {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.containsKey("cazpig_email")) {
@@ -74,7 +79,6 @@ class UserController extends ChangeNotifier {
         badges: badges,
       );
 
-      // Checar vidas por tiempo al cargar
       _regenerarVidasPorTiempo();
       _verificarRachaDiaria();
       notifyListeners();
@@ -98,7 +102,7 @@ class UserController extends ChangeNotifier {
     await prefs.setStringList("cazpig_badges", currentUser.badges);
   }
 
-  /// Registra el fin de un nivel exitoso (+100 XP, +30 Pigmentos)
+  /// CORREGIDO POR INTEGRIDAD (A08): Usa llamadas atómicas individuales en vez de pisar todo el JSON
   void completarNivel(int nivel) async {
     _currentUser ??= UserModel.initial(email: "invitado@correo.com", age: "0");
 
@@ -124,19 +128,22 @@ class UserController extends ChangeNotifier {
       title: nuevoTitulo,
     );
 
+    // 1. Guardado en caché local
     await guardarProgresoLocal();
     
-    // 5. Sincronizamos con Firebase al completar el nivel para actualizar XP y nivel
-    await _sincronizarConFirebase();
-    
-    // 6. Además guardamos el registro específico de esta partida en la subcolección
-    if (!currentUser.isOffline && currentUser.email != "invitado@correo.com") {
-      final String docId = currentUser.email.replaceAll('.', '_');
+    // 2. BLINDAJE A08: Envío de transacciones matemáticas controladas al servidor
+    final uid = _docId;
+    if (uid != null) {
+      // Incrementamos el nivel alcanzado y los pigmentos de forma segura en Firebase
+      await _dbService.markLevelCompleted(uid, nivel);
+      await _dbService.addPigments(uid, 30);
+      
+      // Guardamos la bitácora específica de la partida terminada en la subcolección
       await _dbService.saveGameResult(
-        uid: docId,
+        uid: uid,
         nivel: nivel,
         completado: true,
-        aciertos: 5, // Puedes cambiarlo por variables dinámicas si tu vista las provee
+        aciertos: 5, 
         errores: 0,
         pigmentosGanados: 30,
       );
@@ -145,7 +152,7 @@ class UserController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Restar 1 vida por respuesta incorrecta
+  /// CORREGIDO POR INTEGRIDAD (A08): Resta vidas usando decrementos atómicos del servidor
   void restarVida() async {
     if (currentUser.lives > 0) {
       int nuevasVidas = currentUser.lives - 1;
@@ -155,35 +162,60 @@ class UserController extends ChangeNotifier {
       if (nuevasVidas == 4) {
         await prefs.setString("cazpig_last_life_loss", DateTime.now().toIso8601String());
       }
+      
       await guardarProgresoLocal();
-      _sincronizarConFirebase(); // Sincroniza la pérdida de vida
+
+      // BLINDAJE A08: Enviamos un delta negativo (-1) al servidor en vez de forzar un valor absoluto
+      final uid = _docId;
+      if (uid != null) {
+        await _dbService.modifyUserLivesAtomic(uid, -1);
+      }
+      
       notifyListeners();
     }
   }
 
-  /// Restaura vidas al máximo
+  /// CORREGIDO POR INTEGRIDAD (A08): Recupera vidas al máximo de forma atómica
   void recuperarVidas() async {
+    int vidasFaltantes = 5 - currentUser.lives;
     _currentUser = currentUser.copyWith(lives: 5);
     await guardarProgresoLocal();
-    _sincronizarConFirebase();
+
+    final uid = _docId;
+    if (uid != null && vidasFaltantes > 0) {
+      await _dbService.modifyUserLivesAtomic(uid, vidasFaltantes);
+    }
     notifyListeners();
   }
 
-  /// Compra vidas con pigmentos de la economía del juego
+  /// CORREGIDO POR INTEGRIDAD (A08): Compra de vidas gestionada de manera atómica doble (Vidas y Monedas)
   bool comprarVidasConPigmentos() {
     if (currentUser.pigments >= 150) {
+      int vidasFaltantes = 5 - currentUser.lives;
+      
       _currentUser = currentUser.copyWith(
         lives: 5,
         pigments: currentUser.pigments - 150,
       );
-      guardarProgresoLocal().then((_) => _sincronizarConFirebase());
+      
+      guardarProgresoLocal();
+
+      // BLINDAJE A08: Modificación síncrona en base de datos sin peligro de inyección por proxy de red
+      final uid = _docId;
+      if (uid != null) {
+        _dbService.addPigments(uid, -150);
+        if (vidasFaltantes > 0) {
+          _dbService.modifyUserLivesAtomic(uid, vidasFaltantes);
+        }
+      }
+      
       notifyListeners();
       return true;
     }
     return false;
   }
 
-  /// Calculates lives to regenerate based on elapsed time (5 mins per life)
+  /// Calcula la regeneración pasiva de vidas por tiempo transcurrido (5 min por vida)
   Future<void> _regenerarVidasPorTiempo() async {
     if (currentUser.lives >= 5) return;
     final prefs = await SharedPreferences.getInstance();
@@ -196,6 +228,8 @@ class UserController extends ChangeNotifier {
     int vidasARecuperar = (diff / 5).floor();
     if (vidasARecuperar > 0) {
       int nuevasVidas = (currentUser.lives + vidasARecuperar).clamp(0, 5);
+      int deltaVidasRecuperadas = nuevasVidas - currentUser.lives;
+      
       _currentUser = currentUser.copyWith(lives: nuevasVidas);
       
       if (nuevasVidas < 5) {
@@ -205,8 +239,13 @@ class UserController extends ChangeNotifier {
       } else {
         await prefs.remove("cazpig_last_life_loss");
       }
+      
       await guardarProgresoLocal();
-      _sincronizarConFirebase();
+
+      final uid = _docId;
+      if (uid != null && deltaVidasRecuperadas > 0) {
+        await _dbService.modifyUserLivesAtomic(uid, deltaVidasRecuperadas);
+      }
     }
   }
 
@@ -215,6 +254,7 @@ class UserController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final lastLoginStr = prefs.getString("cazpig_last_login");
     final now = DateTime.now();
+    int rachaAnterior = currentUser.streak;
 
     if (lastLoginStr != null) {
       final lastLogin = DateTime.parse(lastLoginStr);
@@ -229,6 +269,10 @@ class UserController extends ChangeNotifier {
 
     await prefs.setString("cazpig_last_login", now.toIso8601String());
     await guardarProgresoLocal();
-    _sincronizarConFirebase();
+    
+    // Si la racha cambió, actualizamos el perfil completo en Firebase
+    if (currentUser.streak != rachaAnterior) {
+      _sincronizarConFirebase();
+    }
   }
 }

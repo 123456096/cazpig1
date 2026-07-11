@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      
+      // Permitimos la creación inicial del perfil
+      allow create: if isOwner(userId);
+      
+      // VALIDACIÓN DE DISEÑO SEGURO PARA ACTUALIZACIONES
+      allow update: if isOwner(userId) 
+        // 1. Regula las vidas: El cliente no puede asignarse más del máximo permitido (5)
+        && (request.resource.data.lives <= 5)
+        
+        // 2. Candado de economía: Si los pigmentos disminuyen (compró vidas), verifica que no hayan bajado a menos de 0
+        && (request.resource.data.pigments >= 0)
+        
+        // 3. Integridad de datos: Protege que el email del documento no sea alterado maliciosamente
+        && (request.resource.data.email == resource.data.email);
+
+      match /gameResults/{resultId} {
+        allow read: if isOwner(userId);
+        
+        // El cliente solo puede subir resultados si cumplen las reglas del juego
+        allow create: if isOwner(userId)
+          // Regla de negocio: El máximo de pigmentos ganados por partida estándar es 30
+          && (request.resource.data.pigmentosGanados <= 30);
+          
+        allow update: if false; // Los resultados de partidas pasadas son históricos y no se deben editar
+      }
+    }
+  }
+}

@@ -3,8 +3,8 @@ import 'package:lottie/lottie.dart';
 import '../../controllers/splash_controller.dart';
 import '../../controllers/user_controller.dart';
 import '../../theme/app_theme.dart';
-import 'registro_screen.dart';
 import 'menu_principal_screen.dart';
+import 'registro_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -28,12 +28,22 @@ class _SplashScreenState extends State<SplashScreen> {
       }
 
       _controller.iniciarSimulacionDeCarga(
-        onComplete: () {
-          final user = UserController().currentUser;
-          // Si el correo no es el por defecto (invitado), significa que ya se registró anteriormente
-          final bool yaRegistrado = user.email != "invitado@correo.com";
+        onComplete: () async {
+          try {
+            await UserController().cargarProgresoLocal();
+          } catch (e) {
+            debugPrint('Error al cargar SharedPreferences: $e');
+          }
 
-          if (yaRegistrado) {
+          final user = UserController().currentUser;
+          if (!mounted) return;
+
+          if (user.email == 'invitado@correo.com' || user.email.isEmpty) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const RegistroScreen()),
+            );
+          } else {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
@@ -42,11 +52,6 @@ class _SplashScreenState extends State<SplashScreen> {
                   edad: user.age,
                 ),
               ),
-            );
-          } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const RegistroScreen()),
             );
           }
         },

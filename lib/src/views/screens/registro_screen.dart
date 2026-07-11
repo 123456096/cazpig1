@@ -49,6 +49,16 @@ class _RegistroScreenState extends State<RegistroScreen> {
         isOffline: _isOffline,
       );
 
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('¡Registro exitoso! Revisa tu bandeja de entrada para verificar tu cuenta antes de iniciar sesión.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -174,7 +184,6 @@ class _RegistroScreenState extends State<RegistroScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        // Switch de Modo Offline
                         SwitchListTile(
                           title: const Text(
                             'Modo Offline',
@@ -192,7 +201,6 @@ class _RegistroScreenState extends State<RegistroScreen> {
                         ),
                         const SizedBox(height: 30),
 
-                        // Botón Mecánico 3D
                         GameButton(
                           backgroundColor: const Color(0xFF58CC02),
                           shadowColor: const Color(0xFF46A302),

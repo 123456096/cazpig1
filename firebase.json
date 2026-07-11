@@ -1,1 +1,25 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"pigmento-4fa57","appId":"1:189818621892:android:85e4371b4b75287b0a9e91","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"pigmento-4fa57","configurations":{"web":"1:189818621892:web:dad9a0aa6d2f90630a9e91"}}}}}}
+{
+    "firestore": {
+        "rules": "firestore.rules",
+        "indexes": "firestore.indexes.json"
+    },
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "pigmento-4fa57",
+                    "appId": "1:189818621892:android:85e4371b4b75287b0a9e91",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "pigmento-4fa57",
+                    "configurations": {
+                        "web": "1:189818621892:web:dad9a0aa6d2f90630a9e91"
+                    }
+                }
+            }
+        }
+    }
+}

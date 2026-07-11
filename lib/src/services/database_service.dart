@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/user_model.dart'; // Asegúrate de que la ruta apunte a tu modelo
+import '../models/user_model.dart';
+import '../services/logging_service.dart'; // Integración de Monitoreo A09
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -18,7 +19,7 @@ class DatabaseService {
       'isOffline': user.isOffline,
       'title': user.title,
       'badges': user.badges,
-      'lastLogin': FieldValue.serverTimestamp(), // Se añade automáticamente al subirlo
+      'lastLogin': FieldValue.serverTimestamp(), // Integridad temporal: Firma nativa del servidor
     };
   }
 
@@ -44,8 +45,8 @@ class DatabaseService {
     try {
       await _db.collection('users').doc(uid).set(_userToMap(user), SetOptions(merge: true));
       print("¡Perfil de usuario sincronizado en Firestore!");
-    } catch (e) {
-      print("Error al guardar el perfil: $e");
+    } catch (e, stack) {
+      await LoggingService.logException(e, stack, reason: 'Fallo al sincronizar perfil de usuario uid: $uid');
     }
   }
 
@@ -56,8 +57,8 @@ class DatabaseService {
       if (doc.exists) {
         return _mapToUser(doc.data() as Map<String, dynamic>);
       }
-    } catch (e) {
-      print("Error al obtener el perfil: $e");
+    } catch (e, stack) {
+      await LoggingService.logException(e, stack, reason: 'Error al obtener perfil de usuario uid: $uid');
     }
     return null;
   }
@@ -80,26 +81,26 @@ class DatabaseService {
           .set({
         'nivel': nivel,
         'completado': completado,
-        'fecha': FieldValue.serverTimestamp(),
+        'fecha': FieldValue.serverTimestamp(), // Firma de tiempo del servidor contra alteración horaria
         'aciertos': aciertos,
         'errores': errores,
         'pigmentosGanados': pigmentosGanados,
       });
       print("¡Resultado del nivel $nivel registrado con éxito!");
-    } catch (e) {
-      print("Error al guardar resultado del juego: $e");
+    } catch (e, stack) {
+      await LoggingService.logException(e, stack, reason: 'Fallo al guardar resultado del juego para uid: $uid');
     }
   }
 
-  // 4. Actualizar las vidas del usuario de forma directa
-  Future<void> updateUserLives(String uid, int nuevasVidas) async {
+  // 4. CORREGIDO POR INTEGRIDAD (A08): Uso exclusivo de incrementos atómicos para modificar vidas
+  Future<void> modifyUserLivesAtomic(String uid, int deltaVidas) async {
     try {
       await _db.collection('users').doc(uid).update({
-        'lives': nuevasVidas,
+        'lives': FieldValue.increment(deltaVidas),
       });
-      print("Vidas actualizadas a $nuevasVidas con éxito.");
-    } catch (e) {
-      print("Error al actualizar vidas: $e");
+      print("Vidas modificadas atómicamente en ($deltaVidas) con éxito.");
+    } catch (e, stack) {
+      await LoggingService.logException(e, stack, reason: 'Error al actualizar vidas de forma atómica para uid: $uid');
     }
   }
 
@@ -110,25 +111,22 @@ class DatabaseService {
         'pigments': FieldValue.increment(cantidad),
       });
       print("Se modificaron los pigmentos en ($cantidad) con éxito.");
-    } catch (e) {
-      print("Error al actualizar pigmentos: $e");
+    } catch (e, stack) {
+      await LoggingService.logException(e, stack, reason: 'Error al actualizar pigmentos para uid: $uid');
     }
   }
 
-// 6. Marcar un nivel como completado y actualizar el nivel actual del usuario
+  // 6. CORREGIDO POR INTEGRIDAD (A08): El progreso de nivel se incrementa de forma matemática regulada en el servidor
   Future<void> markLevelCompleted(String uid, int nivel) async {
     try {
       await _db.collection('users').doc(uid).update({
-        // Si usas un arreglo para el historial de niveles completados:
         'completedLevels': FieldValue.arrayUnion(['nivel_$nivel']),
-        
-        // ESTO es lo que actualizará el número principal en tu base de datos al instante:
-        'currentLevelReached': nivel, 
-        'level': nivel, // O el campo exacto que manejes para la pantalla principal
+        'currentLevelReached': FieldValue.increment(1), 
+        'level': FieldValue.increment(1), 
       });
-      print("¡Nivel $nivel actualizado en el perfil del usuario!");
-    } catch (e) {
-      print("Error al marcar nivel completado: $e");
+      print("¡Nivel $nivel actualizado de forma atómica!");
+    } catch (e, stack) {
+      await LoggingService.logException(e, stack, reason: 'Error al marcar nivel completado para uid: $uid');
     }
   }
 }
