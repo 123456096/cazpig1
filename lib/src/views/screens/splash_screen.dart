@@ -6,6 +6,7 @@ import '../../controllers/user_controller.dart';
 import '../../theme/app_theme.dart';
 import 'login_screen.dart';
 import 'menu_principal_screen.dart';
+import 'registro_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -29,6 +30,22 @@ class _SplashScreenState extends State<SplashScreen> {
       }
 
       _controller.iniciarSimulacionDeCarga(
+        onComplete: () async {
+          try {
+            await UserController().cargarProgresoLocal();
+          } catch (e) {
+            debugPrint('Error al cargar SharedPreferences: $e');
+          }
+
+          final user = UserController().currentUser;
+          if (!mounted) return;
+
+          if (user.email == 'invitado@correo.com' || user.email.isEmpty) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const RegistroScreen()),
+            );
+          } else {
         onComplete: () {
           final firebaseUser = FirebaseAuth.instance.currentUser;
 
@@ -163,3 +180,4 @@ class _SplashScreenState extends State<SplashScreen> {
     
   }
 }
+

@@ -48,6 +48,17 @@ class _RegistroScreenState extends State<RegistroScreen> {
         age: user.age,
         isOffline: _isOffline,
       );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('¡Registro exitoso! Revisa tu bandeja de entrada para verificar tu cuenta antes de iniciar sesión.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
