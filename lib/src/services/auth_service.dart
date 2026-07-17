@@ -3,14 +3,22 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // Obtener el usuario actual de forma directa
+  User? get currentUser => _auth.currentUser;
+
+  // Modificación: Registro + Envío automático de correo de verificación
   Future<UserCredential> registerWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
-    return _auth.createUserWithEmailAndPassword(
+    UserCredential credential = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
+    
+    // Enviamos el correo de verificación inmediatamente
+    await credential.user?.sendEmailVerification();
+    return credential;
   }
 
   Future<UserCredential> signInWithEmailAndPassword({
@@ -21,6 +29,17 @@ class AuthService {
       email: email.trim(),
       password: password,
     );
+  }
+
+  // NUEVO: Comprobación estricta de verificación de correo electrónico
+  bool isEmailVerified() {
+    final user = _auth.currentUser;
+    if (user != null) {
+      // Forzar recarga del estado del usuario para obtener cambios de verificación recientes
+      user.reload();
+      return user.emailVerified;
+    }
+    return false;
   }
 
   String getErrorMessage(FirebaseAuthException exception) {
@@ -51,4 +70,5 @@ class AuthService {
         return 'Ocurrió un error al autenticar. Intenta de nuevo.';
     }
   }
-}
+
+} 
