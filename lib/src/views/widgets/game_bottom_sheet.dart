@@ -7,6 +7,7 @@ class GameBottomSheet {
   static void mostrarVictoria({
     required BuildContext context,
     required int pigmentosGanados,
+    String? datoCurioso,
     required VoidCallback onContinuar,
   }) {
     SoundManager().playSuccess();
@@ -57,6 +58,50 @@ class GameBottomSheet {
                   ),
                 ],
               ),
+              if (datoCurioso != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF58CC02).withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.lightbulb_outline_rounded, color: Color(0xFFE5A93C), size: 24),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "SABÍAS QUE...",
+                              style: TextStyle(
+                                color: Color(0xFF2E7D32),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              datoCurioso,
+                              style: const TextStyle(
+                                color: Color(0xFF1B5E20),
+                                fontSize: 12,
+                                height: 1.35,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               GameButton(
                 backgroundColor: const Color(0xFF58CC02),

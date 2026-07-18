@@ -39,17 +39,17 @@ class UserModel {
     return UserModel(
       email: email,
       age: age,
-      name: "Elena Cruz",
-      avatarUrl: "assets/avatar/avatar1.jpeg",
-      xp: 1250,
-      level: 5,
+      name: name ?? "Elena Cruz",
+      avatarUrl: avatarUrl ?? "assets/avatar/avatar1.jpeg",
+      xp: 0,
+      level: 1,
       currentLevelReached: 1,
       lives: 5,
-      streak: 5, 
-      pigments: 591, 
+      streak: 0, 
+      pigments: 0, 
       isOffline: isOffline,
-      title: "Cazador Experto",
-      badges: ["Primer Trazo", "Racha Color", "Ojo Mágico"],
+      title: "Cazador Novato",
+      badges: const [],
     );
   }
 

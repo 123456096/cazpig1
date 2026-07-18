@@ -103,19 +103,33 @@ class Nivel2Screen extends StatelessWidget {
                       alignment: Alignment.bottomCenter,
                       padding: const EdgeInsets.only(bottom: 6, left: 4, right: 4),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: Colors.black.withValues(alpha: 0.45),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          item["nombre"],
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              item["nombre"],
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "#${itemColor.value.toRadixString(16).substring(2).toUpperCase()}",
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 9,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

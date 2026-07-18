@@ -15,18 +15,10 @@ class Nivel1Screen extends StatelessWidget {
       ocultarBotonComprobar: true, 
       controllerFactory: (context) => Nivel1Controller(nivelInicial: nivelInicial),
       gameFieldBuilder: (context, controller) {
-        
-        final List<Map<String, dynamic>> pigmentosPaleta = [
-          {'color': Nivel1Controller.rojoCadmio, 'nombre': 'Rojo Cadmio', 'formula': 'CdSe'},
-          {'color': Nivel1Controller.azulCobalto, 'nombre': 'Azul Cobalto', 'formula': 'CoAl2O4'},
-          {'color': Nivel1Controller.amarilloCazador, 'nombre': 'Código Cazador', 'formula': 'C16H14Cl2'},
-          {'color': Nivel1Controller.verdeCazador, 'nombre': 'Código Cazador', 'formula': 'C18H15N3'},
-        ];
-
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _construirPanelObjetivo(),
+            _construirPanelObjetivo(controller.datosNivel),
             const SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -77,7 +69,7 @@ class Nivel1Screen extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      controller.nombreColorResultante,
+                      "${controller.nombreColorResultante} (#${controller.colorResultante.value.toRadixString(16).substring(2).toUpperCase()})",
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -101,8 +93,8 @@ class Nivel1Screen extends StatelessWidget {
               spacing: 12,
               runSpacing: 12,
               alignment: WrapAlignment.center,
-              children: pigmentosPaleta.map((pigmento) {
-                Color col = pigmento['color'];
+              children: controller.opcionesPaleta.map((pigmento) {
+                Color col = pigmento.color;
                 bool seleccionado = controller.colorSeleccionado1 == col || controller.colorSeleccionado2 == col;
 
                 return GestureDetector(
@@ -142,8 +134,11 @@ class Nivel1Screen extends StatelessWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(pigmento['formula'], style: TextStyle(color: col.withOpacity(0.7), fontSize: 9, fontFamily: 'monospace')),
-                            Text(pigmento['nombre'], style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                            Text(
+                              "${pigmento.formula}  #${col.value.toRadixString(16).substring(2).toUpperCase()}",
+                              style: TextStyle(color: col.withOpacity(0.8), fontSize: 9, fontFamily: 'monospace'),
+                            ),
+                            Text(pigmento.nombre, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                           ],
                         )
                       ],
@@ -175,7 +170,7 @@ class Nivel1Screen extends StatelessWidget {
     );
   }
 
-  Widget _construirPanelObjetivo() {
+  Widget _construirPanelObjetivo(MixLevelModel datosNivel) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -189,12 +184,22 @@ class Nivel1Screen extends StatelessWidget {
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text("OBJETIVO", style: TextStyle(color: Color(0xFF6B7A94), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
-              SizedBox(height: 4),
-              Text("VIOLETA", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
-              Text("Sintetiza empleando reactivos primarios", style: TextStyle(color: Colors.grey, fontSize: 11)),
+            children: [
+              const Text("OBJETIVO", style: TextStyle(color: Color(0xFF6B7A94), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(datosNivel.objective, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 8),
+                  Text(
+                    "#${datosNivel.colorHex.value.toRadixString(16).substring(2).toUpperCase()}",
+                    style: TextStyle(color: datosNivel.colorHex, fontSize: 13, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text("Sintetiza empleando reactivos primarios", style: TextStyle(color: Colors.grey, fontSize: 11)),
             ],
           ),
           Container(
@@ -202,13 +207,13 @@ class Nivel1Screen extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFF0A0C10),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.purple.shade400, width: 1),
+              border: Border.all(color: datosNivel.colorHex.withOpacity(0.8), width: 1),
             ),
             child: Column(
               children: [
-                Icon(Icons.biotech, color: Colors.purple.shade300, size: 30),
+                Icon(Icons.biotech, color: datosNivel.colorHex, size: 30),
                 const SizedBox(height: 2),
-                const Text("VIOLETA", style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                Text(datosNivel.objective, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
               ],
             ),
           )

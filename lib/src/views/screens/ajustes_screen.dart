@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../controllers/game_settings_controller.dart';
+import '../../controllers/user_controller.dart';
 import '../../theme/app_theme.dart';
+import '../widgets/animated_background.dart';
 
 class AjustesScreen extends StatefulWidget {
   const AjustesScreen({super.key});
@@ -13,12 +15,6 @@ class _AjustesScreenState extends State<AjustesScreen> {
   final GameSettingsController _controller = GameSettingsController();
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
@@ -27,11 +23,9 @@ class _AjustesScreenState extends State<AjustesScreen> {
         return Stack(
           children: [
             Positioned.fill(
-              child: Container(
-                color: const Color.fromARGB(255, 18, 17, 17),
-                child: CustomPaint(
-                  painter: FondoLiquidoPainter(),
-                ),
+              child: Image.asset(
+                'assets/imagenes/fondo.jpeg',
+                fit:BoxFit.cover,
               ),
             ),
             Scaffold(
@@ -78,6 +72,28 @@ class _AjustesScreenState extends State<AjustesScreen> {
                           value: settings.language,
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _mostrarConfirmacionReinicio(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent.withOpacity(0.15),
+                          foregroundColor: Colors.redAccent,
+                          side: const BorderSide(color: Colors.redAccent, width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                        ),
+                        icon: const Icon(Icons.delete_forever_rounded),
+                        label: const Text(
+                          "REINICIAR PROGRESO",
+                          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 50),
                     Center(
@@ -146,50 +162,79 @@ class _AjustesScreenState extends State<AjustesScreen> {
       endIndent: 16,
     );
   }
+
+  Widget _construirSeccionTitulo(String titulo) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+      child: Text(
+        titulo,
+        style: const TextStyle(
+            fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black45, letterSpacing: 1.2),
+      ),
+    );
+  }
 }
 
-class FondoLiquidoPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    void dibujarParticula(double x, double y, double radio, Color color, [double glowSpread = 3.0]) {
-      final paintGlow = Paint()
-        ..color = color.withOpacity(0.4)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, glowSpread);
-      final paintCore = Paint()..color = color.withOpacity(0.9);
-      canvas.drawCircle(Offset(x, y), radio + glowSpread, paintGlow);
-      canvas.drawCircle(Offset(x, y), radio, paintCore);
-    }
-
-    dibujarParticula(size.width * 0.15, size.height * 0.10, 4.0, Colors.cyanAccent);
-    dibujarParticula(size.width * 0.85, size.height * 0.25, 2.5, Colors.cyan);
-    dibujarParticula(size.width * 0.50, size.height * 0.90, 3.5, Colors.cyanAccent);
-    dibujarParticula(size.width * 0.10, size.height * 0.60, 2.0, const Color(0xFF00C8D2));
-    dibujarParticula(size.width * 0.75, size.height * 0.70, 5.0, Colors.amber, 8.0);
-    dibujarParticula(size.width * 0.35, size.height * 0.40, 2.0, Colors.amberAccent);
-    dibujarParticula(size.width * 0.90, size.height * 0.85, 3.0, Colors.orangeAccent);
-    dibujarParticula(size.width * 0.45, size.height * 0.15, 2.0, Colors.amber);
-    dibujarParticula(size.width * 0.20, size.height * 0.80, 4.5, Colors.pinkAccent);
-    dibujarParticula(size.width * 0.80, size.height * 0.15, 3.0, const Color(0xFFD63384));
-    dibujarParticula(size.width * 0.65, size.height * 0.55, 2.5, Colors.pink);
-    dibujarParticula(size.width * 0.30, size.height * 0.90, 1.5, Colors.pinkAccent);
-    dibujarParticula(size.width * 0.55, size.height * 0.30, 4.0, Colors.deepPurpleAccent);
-    dibujarParticula(size.width * 0.05, size.height * 0.35, 3.0, Colors.purpleAccent);
-    dibujarParticula(size.width * 0.70, size.height * 0.95, 2.0, Colors.purple);
-  }
+  void _mostrarConfirmacionReinicio(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF161A22),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Colors.redAccent, width: 1.5),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
+              SizedBox(width: 12),
+              Text("¿Confirmar Reinicio?", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const Text(
+            "Esta acción borrará todo tu progreso local y sincronizado de niveles, XP, diamantes y rachas. Esto no se puede deshacer.",
+            style: TextStyle(color: Color(0xFF6B7A94), fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text("Cancelar", style: TextStyle(color: Colors.white70)),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.redAccent.withOpacity(0.1),
+                foregroundColor: Colors.redAccent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () async {
+                Navigator.pop(dialogContext); // Cierra el modal
+                
+                await UserController().reiniciarTodoElProgreso();
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return false;
   }
 }
-                  
-  Widget _construirSeccionTitulo(String titulo) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
-      child: Text(
-        titulo,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black45, letterSpacing: 1.2),
-      ),
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Progreso reiniciado con éxito"),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Text("Sí, reiniciar", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
+}
 

@@ -71,6 +71,8 @@ flutter:
   assets:
     - assets/imagenes/icon1.png
     - assets/imagenes/icon2.png
+    - assets/imagenes/fondo.jpeg
+    - assets/imagenes/sello.png
     - assets/spinners/spinner.json
     - assets/spinners/bool.json 
     - assets/avatar/

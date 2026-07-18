@@ -7,6 +7,14 @@ import 'gameplay/nivel1_screen.dart';
 import 'gameplay/nivel2_screen.dart';
 import 'gameplay/nivel3_screen.dart';
 import 'gameplay/nivel4_screen.dart';
+import 'gameplay/nivel5_screen.dart';
+import 'gameplay/nivel6_screen.dart';
+import 'gameplay/nivel7_screen.dart';
+import 'gameplay/nivel8_screen.dart';
+import 'gameplay/nivel9_screen.dart';
+import 'gameplay/nivel10_screen.dart';
+import 'gameplay/nivel11_screen.dart';
+import 'gameplay/nivel12_screen.dart';
 
 class NivelSeleccionScreen extends StatefulWidget {
   const NivelSeleccionScreen({super.key});
@@ -22,10 +30,18 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen> {
   @override
   void initState() {
     super.initState();
-    // Scroll inicial automático al nivel activo del usuario (+1 para compensar el header)
+    // Calcular en qué fila está el nivel actual
     final activeLevel = _userController.currentUser.currentLevelReached;
     final double initialOffset = max(0.0, (activeLevel - 2) * 190.0);
     _scrollController = ScrollController(initialScrollOffset: initialOffset);
+  }
+
+  // Función matemática para saber en qué fila cae un nivel (patrón 1-2-1-2)
+  int _getRowForLevel(int level) {
+    if (level <= 0) return 0;
+    int blocks = (level - 1) ~/ 3;
+    int remainder = (level - 1) % 3;
+    return (blocks * 2) + (remainder == 0 ? 0 : 1);
   }
 
   @override
@@ -45,14 +61,12 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen> {
           children: [
             // 1. FONDO (Solo la imagen pergamino)
             Positioned.fill(
-              child: Container(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage('assets/imagenes/segundo.jpeg'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
+              child: Image.asset(
+                'assets/imagenes/fondo.jpeg',
+                fit:BoxFit.cover,
               ),
+            const Positioned.fill(
+              child: AnimatedBackground(child: SizedBox.shrink()),
             ),
             
             // 2. LA PANTALLA
@@ -261,7 +275,6 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.15),
@@ -276,13 +289,19 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                Container(
+                  padding:const EdgeInsets.symmetric(horizontal:10,vertical:4),
+                   decoration:BoxDecoration(
+                    color:const Color(0xFFFFD166).withOpacity(0.2),
+                    borderRadius:BorderRadius.circular(10),
+                  ),
+               child:const Text(
                   "SECCIÓN 1 · UNIDAD 1",
                   style: TextStyle(
                     color: Colors.white70, // 👈 Corregido aquí (blanco con 70% opacidad)
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
+                    letterSpacing: 1.2,
                   ),
                 ),
                 SizedBox(height: 6),
@@ -336,7 +355,7 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen> {
     }
 
     Widget pantallaDestino;
-    int tipo = nivel % 4;
+    int tipo = nivel % 12;
 
     if (tipo == 1) {
       pantallaDestino = Nivel1Screen(nivelInicial: nivel);
@@ -344,14 +363,32 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen> {
       pantallaDestino = Nivel2Screen(nivelInicial: nivel);
     } else if (tipo == 3) {
       pantallaDestino = Nivel3Screen(nivelInicial: nivel);
-    } else {
+    } else if (tipo == 4) {
       pantallaDestino = Nivel4Screen(nivelInicial: nivel);
+    } else if (tipo == 5) {
+      pantallaDestino = Nivel5Screen(nivelInicial: nivel);
+    } else if (tipo == 6) {
+      pantallaDestino = Nivel6Screen(nivelInicial: nivel);
+    } else if (tipo == 7) {
+      pantallaDestino = Nivel7Screen(nivelInicial: nivel);
+    } else if (tipo == 8) {
+      pantallaDestino = Nivel8Screen(nivelInicial: nivel);
+    } else if (tipo == 9) {
+      pantallaDestino = Nivel9Screen(nivelInicial: nivel);
+    } else if (tipo == 10) {
+      pantallaDestino = Nivel10Screen(nivelInicial: nivel);
+    } else if (tipo == 11) {
+      pantallaDestino = Nivel11Screen(nivelInicial: nivel);
+    } else {
+      pantallaDestino = Nivel12Screen(nivelInicial: nivel);
     }
 
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => pantallaDestino),
-    );
+    ).then((_) {
+      _userController.verificarYRegenerarVidas();
+    });
   }
 
   void _mostrarCompraVidasDialog(BuildContext context) {

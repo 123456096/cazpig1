@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../controllers/nivel4_controller.dart';
 import '../../../models/level_model.dart';
@@ -25,6 +26,13 @@ class Nivel4Screen extends StatelessWidget {
       controllerFactory: (context) => Nivel4Controller(nivelInicial: nivelInicial),
       gameFieldBuilder: (context, controller) {
         final datosNivel = controller.datosNivel;
+        final Color? selected = controller.colorSeleccionado;
+        double? currentRatio;
+        if (selected != null) {
+          final double l1 = selected.computeLuminance();
+          final double l2 = datosNivel.backgroundColor.computeLuminance();
+          currentRatio = (math.max(l1, l2) + 0.05) / (math.min(l1, l2) + 0.05);
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -48,7 +56,7 @@ class Nivel4Screen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "CAZADORES",
+                    datosNivel.previewTextTop,
                     style: TextStyle(
                       color: controller.colorSeleccionado ?? Colors.transparent,
                       fontSize: 26,
@@ -57,7 +65,7 @@ class Nivel4Screen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    "DE PIGMENTOS",
+                    datosNivel.previewTextBottom,
                     style: TextStyle(
                       color: controller.colorSeleccionado ?? Colors.transparent,
                       fontSize: 14,
@@ -66,12 +74,33 @@ class Nivel4Screen extends StatelessWidget {
                     ),
                   ),
                   if (controller.colorSeleccionado == null)
-                    const Text(
+                    Text(
                       "Selecciona una opción para probar",
                       style: TextStyle(
-                        color: Colors.black45,
+                        color: datosNivel.backgroundColor.computeLuminance() > 0.5
+                            ? Colors.black45
+                            : Colors.white54,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  else if (currentRatio != null)
+                    Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        "CONTRASTE: ${currentRatio.toStringAsFixed(1)}:1",
+                        style: TextStyle(
+                          color: selected,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                          fontFamily: 'monospace',
+                        ),
                       ),
                     ),
                 ],

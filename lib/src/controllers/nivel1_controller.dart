@@ -1,22 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:pigmento/src/controllers/user_controller.dart';
+import 'package:pigmento/src/controllers/game_settings_controller.dart';
 import 'package:pigmento/src/models/level_model.dart';
 import 'package:pigmento/src/controllers/base_level_controller.dart';
 import 'package:pigmento/src/controllers/level_generator.dart';
+
+class PigmentInfo {
+  final Color color;
+  final String nombre;
+  final String formula;
+
+  const PigmentInfo({
+    required this.color,
+    required this.nombre,
+    required this.formula,
+  });
+}
+
+const List<PigmentInfo> allPigments = [
+  PigmentInfo(color: Color(0xFFE53935), nombre: "Rojo Cadmio", formula: "CdSe"),
+  PigmentInfo(color: Color(0xFF1E88E5), nombre: "Azul Cobalto", formula: "CoAl2O4"),
+  PigmentInfo(color: Color(0xFFFFB300), nombre: "Amarillo Cromo", formula: "PbCrO4"),
+  PigmentInfo(color: Color(0xFF43A047), nombre: "Verde Viridián", formula: "Cr2O3"),
+  PigmentInfo(color: Colors.white, nombre: "Blanco Titanio", formula: "TiO2"),
+  PigmentInfo(color: Color(0xFF212121), nombre: "Negro Carbón", formula: "C"),
+];
+
+PigmentInfo getPigmentInfo(Color color) {
+  final int val = color.value;
+  if (val == Colors.red.value || val == const Color(0xFFE53935).value) {
+    return allPigments[0];
+  }
+  if (val == Colors.blue.value || val == const Color(0xFF1E88E5).value) {
+    return allPigments[1];
+  }
+  if (val == Colors.yellow.value || val == const Color(0xFFFFB300).value) {
+    return allPigments[2];
+  }
+  if (val == Colors.green.value || val == const Color(0xFF43A047).value) {
+    return allPigments[3];
+  }
+  if (val == Colors.white.value) {
+    return allPigments[4];
+  }
+  if (val == Colors.black.value || val == const Color(0xFF212121).value) {
+    return allPigments[5];
+  }
+  return PigmentInfo(color: color, nombre: "Pigmento Especial", formula: "Unk");
+}
 
 class Nivel1Controller extends BaseLevelController<MixLevelModel> {
   final int nivelInicial;
   Color? colorSeleccionado1;
   Color? colorSeleccionado2;
-
-  static const Color rojoCadmio = Color(0xFFE53935);
-  static const Color azulCobalto = Color(0xFF1E88E5);
-  static const Color amarilloCazador = Color(0xFFFFB300);
-  static const Color verdeCazador = Color(0xFF43A047);
+  late List<PigmentInfo> opcionesPaleta;
 
   Nivel1Controller({required this.nivelInicial}) : super(nivelInicial: nivelInicial) {
     datosNivel = LevelGenerator.generarNivel(nivelInicial) as MixLevelModel;
+    _inicializarPaleta();
+  }
+
+  void _inicializarPaleta() {
+    final p1 = getPigmentInfo(datosNivel.color1);
+    final p2 = getPigmentInfo(datosNivel.color2);
+    final list = allPigments.where((p) => p.color.value != p1.color.value && p.color.value != p2.color.value).toList();
+    list.shuffle();
+    opcionesPaleta = [p1, p2, list[0], list[1]]..shuffle();
   }
 
   bool esCorrecto = false;
@@ -33,61 +84,38 @@ class Nivel1Controller extends BaseLevelController<MixLevelModel> {
       return Colors.transparent;
     }
 
-    final c1 = colorSeleccionado1!.value;
-    final c2 = colorSeleccionado2!.value;
+    final c1Val = colorSeleccionado1!.value;
+    final c2Val = colorSeleccionado2!.value;
 
-    // ROJO + AZUL = VIOLETA
-    if ((c1 == rojoCadmio.value && c2 == azulCobalto.value) ||
-        (c1 == azulCobalto.value && c2 == rojoCadmio.value)) {
-      nombreColorResultante = "Violeta";
+    final p1 = getPigmentInfo(datosNivel.color1);
+    final p2 = getPigmentInfo(datosNivel.color2);
+
+    final correctC1 = p1.color.value;
+    final correctC2 = p2.color.value;
+
+    // Verificar si es la mezcla correcta para el nivel
+    if ((c1Val == correctC1 && c2Val == correctC2) ||
+        (c1Val == correctC2 && c2Val == correctC1)) {
+      nombreColorResultante = datosNivel.objective;
       esCorrecto = true;
-      return const Color(0xFF8E24AA);
+      return datosNivel.colorHex;
     }
 
-    // AZUL + AMARILLO = VERDE
-    if ((c1 == azulCobalto.value && c2 == amarilloCazador.value) ||
-        (c1 == amarilloCazador.value && c2 == azulCobalto.value)) {
-      nombreColorResultante = "Verde";
-      esCorrecto = false;
-      return const Color(0xFF2E7D32);
+    // Buscar si produce alguna otra combinación en el catálogo
+    for (final mezcla in LevelGenerator.mezclasBase) {
+      final m1 = getPigmentInfo(mezcla["c1"]).color.value;
+      final m2 = getPigmentInfo(mezcla["c2"]).color.value;
+      if ((c1Val == m1 && c2Val == m2) || (c1Val == m2 && c2Val == c1Val)) {
+        nombreColorResultante = mezcla["objective"];
+        esCorrecto = false;
+        return mezcla["colorHex"];
+      }
     }
 
-    // ROJO + AMARILLO = NARANJA
-    if ((c1 == rojoCadmio.value && c2 == amarilloCazador.value) ||
-        (c1 == amarilloCazador.value && c2 == rojoCadmio.value)) {
-      nombreColorResultante = "Naranja";
-      esCorrecto = false;
-      return const Color(0xFFEF6C00);
-    }
-
-    // ROJO + VERDE
-    if ((c1 == rojoCadmio.value && c2 == verdeCazador.value) ||
-        (c1 == verdeCazador.value && c2 == rojoCadmio.value)) {
-      nombreColorResultante = "Café";
-      esCorrecto = false;
-      return const Color(0xFF6D4C41);
-    }
-
-    // AZUL + VERDE
-    if ((c1 == azulCobalto.value && c2 == verdeCazador.value) ||
-        (c1 == verdeCazador.value && c2 == azulCobalto.value)) {
-      nombreColorResultante = "Turquesa";
-      esCorrecto = false;
-      return const Color(0xFF00897B);
-    }
-
-    // AMARILLO + VERDE
-    if ((c1 == amarilloCazador.value && c2 == verdeCazador.value) ||
-        (c1 == verdeCazador.value && c2 == amarilloCazador.value)) {
-      nombreColorResultante = "Verde Lima";
-      esCorrecto = false;
-      return const Color(0xFF9CCC65);
-    }
-
-    nombreColorResultante = "Color desconocido";
+    nombreColorResultante = "Mezcla inestable";
     esCorrecto = false;
 
-    return const Color(0xFF4E443C);
+    return Color.lerp(colorSeleccionado1, colorSeleccionado2, 0.5) ?? const Color(0xFF4E443C);
   }
 
   void seleccionarColor(Color color) {
@@ -140,15 +168,21 @@ class Nivel1Controller extends BaseLevelController<MixLevelModel> {
   // ==================== PROCESAMIENTO AUTOMÁTICO Y NAVEGACIÓN ====================
   void comprobarResultadoAutomatico(BuildContext context) async {
     final _ = colorResultante; 
+    final settings = GameSettingsController().settings;
 
     comprobado = true;
     notifyListeners();
 
     if (esCorrecto) {
-      try {
-        AudioPlayer().play(AssetSource('audio/success.mp3'));
-      } catch (e) {
-        debugPrint("Error audio success: $e");
+      if (settings.musicActive) {
+        try {
+          AudioPlayer().play(AssetSource('audio/success.mp3'));
+        } catch (e) {
+          debugPrint("Error audio success: $e");
+        }
+      }
+      if (settings.vibrationActive) {
+        HapticFeedback.mediumImpact();
       }
 
       showDialog(
@@ -168,9 +202,9 @@ class Nivel1Controller extends BaseLevelController<MixLevelModel> {
                 Text("Síntesis Exitosa", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
-            content: const Text(
-              "¡Espectacular! Has logrado estabilizar el pigmento Violeta. La fórmula es correcta.",
-              style: TextStyle(color: Color(0xFF6B7A94), fontSize: 14),
+            content: Text(
+              "¡Espectacular! Has logrado estabilizar el pigmento ${datosNivel.objective}. La fórmula es correcta.",
+              style: const TextStyle(color: Color(0xFF6B7A94), fontSize: 14),
             ),
             actions: [
               TextButton(
@@ -201,10 +235,15 @@ class Nivel1Controller extends BaseLevelController<MixLevelModel> {
       );
 
     } else {
-      try {
-        AudioPlayer().play(AssetSource('audio/error.mp3'));
-      } catch (e) {
-        debugPrint("Error audio error: $e");
+      if (settings.musicActive) {
+        try {
+          AudioPlayer().play(AssetSource('audio/error.mp3'));
+        } catch (e) {
+          debugPrint("Error audio error: $e");
+        }
+      }
+      if (settings.vibrationActive) {
+        HapticFeedback.mediumImpact();
       }
 
       // Se eliminó el 'await' porque el método retorna void síncrono
@@ -228,7 +267,7 @@ class Nivel1Controller extends BaseLevelController<MixLevelModel> {
               ],
             ),
             content: Text(
-              "La reacción generó un compuesto de tipo ($nombreColorResultante) en lugar de Violeta. Los reactivos se han volatilizado.",
+              "La reacción generó un compuesto de tipo ($nombreColorResultante) en lugar de ${datosNivel.objective}. Los reactivos se han volatilizado.",
               style: const TextStyle(color: Color(0xFF6B7A94), fontSize: 14),
             ),
             actions: [

@@ -69,7 +69,12 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => MenuPrincipalScreen(correo: email, edad: age)),
+        MaterialPageRoute(
+          builder: (context) => MenuPrincipalScreen(
+            correo: email,
+            edad: UserController().currentUser.age,
+          ),
+        ),
       );
     } on FirebaseAuthException catch (e, stack) {
       if (e.code == 'wrong-password' || e.code == 'user-not-found' || e.code == 'invalid-credential') {
@@ -155,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const Icon(Icons.emoji_events_outlined, size: 50, color: Colors.cyanAccent),
                         const SizedBox(height: 24),
                         TextFormField(
-                          controller: _emailController,
+                          controller: _emailController, // Use _emailCtrl consistently
                           keyboardType: TextInputType.emailAddress,
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
                           decoration: _inputDecoration('Correo Electrónico', Icons.email_outlined),
@@ -169,14 +174,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 20),
                         TextFormField(
-                          controller: _passwordController,
+                          controller: _passCtrl, // Use _passCtrl consistently
                           obscureText: !_showPassword,
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
                           decoration: _inputDecoration('Contraseña', Icons.lock_outline).copyWith(
                             suffixIcon: IconButton(
-                              icon: Icon(
+                              icon: Icon( 
                                 _showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                color: Colors.cyanAccent.withOpacity(0.7),
+                                color: Colors.cyanAccent.withOpacity(0.7), // Consistent color
                               ),
                               onPressed: () => setState(() => _showPassword = !_showPassword),
                             ),
@@ -190,8 +195,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         GameButton(
                           backgroundColor: const Color(0xFF6C5CE7),
                           shadowColor: const Color(0xFF4A3DB5),
-                          onTap: _isLoading ? null : _intentarLogin,
-                          child: _isLoading
+                          onTap: _loading ? null : _intentarLogin, // Use _loading consistently
+                          child: _loading
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,

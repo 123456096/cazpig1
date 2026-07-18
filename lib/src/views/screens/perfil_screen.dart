@@ -48,12 +48,10 @@ class PerfilScreen extends StatelessWidget {
         return Stack(
           children:[
             Positioned.fill(
-              child: Container(
-                color: const Color.fromARGB(255, 18, 17, 17), 
-                child: CustomPaint(
-                  painter:FondoLiquidoPainter(),
-                  ),
-                  ) ,
+              child:Image.asset(
+                'assets/imagenes/fondo.jpeg',
+                fit:BoxFit.cover 
+              ),
                   ),
           
 
@@ -380,54 +378,4 @@ void _mostrarGaleriaAvatares(BuildContext context, UserController controller) {
   );
 }
 
-}
-
- 
-
-class FondoLiquidoPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-  
-    void dibujarParticula(double x, double y, double radio, Color color, [double glowSpread = 3.0]) {
-      
-      final paintGlow = Paint()
-        ..color = color.withOpacity(0.4) // Brillo sutil
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, glowSpread);
-      
-      final paintCore = Paint()..color = color.withOpacity(0.9);
-      
-      // Dibujamos el brillo y luego el núcleo encima
-      canvas.drawCircle(Offset(x, y), radio + glowSpread, paintGlow);
-      canvas.drawCircle(Offset(x, y), radio, paintCore);
-    }
-
-    dibujarParticula(size.width * 0.15, size.height * 0.10, 4.0, Colors.cyanAccent);
-    dibujarParticula(size.width * 0.85, size.height * 0.25, 2.5, Colors.cyan);
-    dibujarParticula(size.width * 0.50, size.height * 0.90, 3.5, Colors.cyanAccent);
-    dibujarParticula(size.width * 0.10, size.height * 0.60, 2.0, const Color(0xFF00C8D2));
-
-    dibujarParticula(size.width * 0.75, size.height * 0.70, 5.0, Colors.amber, 8.0); // Una gota más grande y brillante
-    dibujarParticula(size.width * 0.35, size.height * 0.40, 2.0, Colors.amberAccent);
-    dibujarParticula(size.width * 0.90, size.height * 0.85, 3.0, Colors.orangeAccent);
-    dibujarParticula(size.width * 0.45, size.height * 0.15, 2.0, Colors.amber);
-
-    dibujarParticula(size.width * 0.20, size.height * 0.80, 4.5, Colors.pinkAccent);
-    dibujarParticula(size.width * 0.80, size.height * 0.15, 3.0, const Color(0xFFD63384));
-    dibujarParticula(size.width * 0.65, size.height * 0.55, 2.5, Colors.pink);
-    dibujarParticula(size.width * 0.30, size.height * 0.90, 1.5, Colors.pinkAccent);
-
-    dibujarParticula(size.width * 0.55, size.height * 0.30, 4.0, Colors.deepPurpleAccent);
-    dibujarParticula(size.width * 0.05, size.height * 0.35, 3.0, Colors.purpleAccent);
-    dibujarParticula(size.width * 0.70, size.height * 0.95, 2.0, Colors.purple);
-
-    dibujarParticula(size.width * 0.40, size.height * 0.75, 1.0, Colors.white, 2.0);
-    dibujarParticula(size.width * 0.60, size.height * 0.10, 1.0, Colors.white70, 2.0);
-    dibujarParticula(size.width * 0.25, size.height * 0.25, 1.2, Colors.white60, 2.0);
-    dibujarParticula(size.width * 0.85, size.height * 0.50, 1.0, Colors.white, 2.0);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false; 
-  }
 }

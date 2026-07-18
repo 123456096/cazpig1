@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
+import 'game_settings_controller.dart';
 
 class SoundManager {
   static final SoundManager _instance = SoundManager._internal();
@@ -16,10 +17,12 @@ class SoundManager {
   final AudioPlayer _tapPlayer = AudioPlayer();
 
   Future<void> playSuccess() async {
+    await _vibrate();
     await _playAudio(_successPlayer, 'audio/success.mp3');
   }
 
   Future<void> playError() async {
+    await _vibrate();
     await _playAudio(_errorPlayer, 'audio/error.mp3');
   }
 
@@ -40,6 +43,7 @@ class SoundManager {
   }
 
   Future<void> _playAudio(AudioPlayer player, String assetPath) async {
+    if (!GameSettingsController().settings.musicActive) return;
     try {
       await player.stop();
       await player.play(_buildSource(assetPath), volume: 1.0);
@@ -49,6 +53,7 @@ class SoundManager {
   }
 
   Future<void> _vibrate() async {
+    if (!GameSettingsController().settings.vibrationActive) return;
     // La vibración no está disponible en web
     if (kIsWeb) {
       await HapticFeedback.selectionClick();

@@ -32,34 +32,65 @@ class Nivel3Screen extends StatelessWidget {
         List<Widget> secuenciaWidgets = datosNivel.sequence.map((color) {
           if (color.value == Colors.transparent.value) {
             final Color? previewColor = controller.colorSeleccionado;
-            return Container(
-              width: ancho > 600 ? 90 : 65,
-              height: 70,
-              decoration: BoxDecoration(
-                color: previewColor ?? const Color(0xFF141824),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: previewColor != null ? const Color(0xFFFF9F1C) : const Color(0xFF9B5DE5),
-                  width: 2.5,
+            final HSLColor? hsl = previewColor != null ? HSLColor.fromColor(previewColor) : null;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: ancho > 600 ? 90 : 65,
+                  height: 55,
+                  decoration: BoxDecoration(
+                    color: previewColor ?? const Color(0xFF141824),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: previewColor != null ? const Color(0xFFFF9F1C) : const Color(0xFF9B5DE5),
+                      width: 2.0,
+                    ),
+                  ),
+                  child: previewColor == null
+                      ? const Icon(
+                          Icons.help_outline_rounded,
+                          color: Color(0xFF9B5DE5),
+                          size: 24,
+                        )
+                      : const SizedBox.shrink(),
                 ),
-              ),
-              child: previewColor == null
-                  ? const Icon(
-                      Icons.help_outline_rounded,
-                      color: Color(0xFF9B5DE5),
-                      size: 32,
-                    )
-                  : const SizedBox.shrink(),
+                const SizedBox(height: 4),
+                Text(
+                  hsl != null ? "H:${hsl.hue.toInt()}° L:${(hsl.lightness * 100).toInt()}%" : "H:? L:?%",
+                  style: TextStyle(
+                    color: previewColor != null ? const Color(0xFFFF9F1C) : const Color(0xFF9B5DE5),
+                    fontSize: 9,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             );
           }
 
-          return Container(
-            width: ancho > 600 ? 90 : 65,
-            height: 70,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(16),
-            ),
+          final HSLColor hsl = HSLColor.fromColor(color);
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: ancho > 600 ? 90 : 65,
+                height: 55,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "H:${hsl.hue.toInt()}° L:${(hsl.lightness * 100).toInt()}%",
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 9,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ],
           );
         }).toList();
 

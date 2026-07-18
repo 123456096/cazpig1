@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../controllers/user_controller.dart';
 import '../../widgets/game_button.dart';
 import '../../widgets/game_bottom_sheet.dart';
 import '../../../controllers/base_level_controller.dart';
+import '../../../controllers/level_generator.dart';
 import '../../../models/level_model.dart';
 
 class BaseGameplayScreen<T extends LevelModel, C extends BaseLevelController<T>> extends StatefulWidget {
@@ -42,11 +44,14 @@ class _BaseGameplayScreenState<T extends LevelModel, C extends BaseLevelControll
 
   void _comprobar() {
     final bool correcto = _controller.comprobarResultado();
+
     if (correcto) {
       UserController().completarNivel(widget.nivel);
+      final String fact = LevelGenerator.obtenerDatoCurioso(_controller.datosNivel);
       GameBottomSheet.mostrarVictoria(
         context: context,
         pigmentosGanados: 30,
+        datoCurioso: fact,
         onContinuar: () {
           Navigator.pop(context);
         },
@@ -54,11 +59,7 @@ class _BaseGameplayScreenState<T extends LevelModel, C extends BaseLevelControll
     } else {
       UserController().restarVida();
       final livesLeft = UserController().currentUser.lives;
-
-      String mensajeError = "Esa no es la respuesta correcta. ¡Inténtalo de nuevo!";
-      if (_controller.datosNivel is ContrastLevelModel) {
-        mensajeError = (_controller.datosNivel as ContrastLevelModel).explanation;
-      }
+      final String mensajeError = _obtenerMensajeError(_controller.datosNivel);
 
       GameBottomSheet.mostrarDerrota(
         context: context,
@@ -97,6 +98,42 @@ class _BaseGameplayScreenState<T extends LevelModel, C extends BaseLevelControll
             title: Text('${datos.title} - Nivel ${datos.level}'),
             backgroundColor: const Color(0xFF141824),
             elevation: 0,
+            actions: [
+              ListenableBuilder(
+                listenable: UserController(),
+                builder: (context, child) {
+                  final user = UserController().currentUser;
+                  return Row(
+                    children: [
+                      // VIDAS
+                      const Icon(Icons.favorite_rounded, color: Color(0xFFFF4B4B), size: 20),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${user.lives}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      // PIGMENTOS
+                      const Icon(Icons.diamond_rounded, color: Color(0xFF00C897), size: 20),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${user.pigments}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                    ],
+                  );
+                },
+              ),
+            ],
           ),
           body: Column(
             children: [
@@ -158,6 +195,46 @@ class _BaseGameplayScreenState<T extends LevelModel, C extends BaseLevelControll
         );
       },
     );
+  }
+
+  String _obtenerMensajeError(LevelModel model) {
+    if (model is ContrastLevelModel) {
+      return model.explanation;
+    }
+    if (model is BlindLevelModel) {
+      return model.explanation;
+    }
+    if (model is MixLevelModel) {
+      return "Mezclar pigmentos físicos es sustractivo: busca qué dos reactivos combinados forman el tono objetivo (los primarios son azul, amarillo y rojo).";
+    }
+    if (model is SearchLevelModel) {
+      return "El tono solicitado responde a la psicología del color. Elige el matiz que exprese mejor la emoción del brief.";
+    }
+    if (model is GradientLevelModel) {
+      return "El color correcto debe encajar de forma suave y progresiva en la escala cromática sin romper la gradación visual.";
+    }
+    if (model is HarmonyLevelModel) {
+      return "La respuesta correcta debe formar la relación geométrica solicitada: el complementario (opuesto) o análogo (color vecino en el círculo).";
+    }
+    if (model is RgbLevelModel) {
+      return "El color resultante de tu mezcla difiere del objetivo. Ajusta los canales R, G y B guiándote por el medidor de similitud.";
+    }
+    if (model is TempLevelModel) {
+      return "¡Cuidado! Clasifica los cálidos (rojo, naranja, amarillo) en el frasco izquierdo y los fríos (azul, verde, violeta) en el derecho.";
+    }
+    if (model is HexLevelModel) {
+      return "El código hexadecimal #RRGGBB representa la intensidad del Rojo, Verde y Azul. Compara las muestras con el código dado.";
+    }
+    if (model is AlbersLevelModel) {
+      return model.explanation;
+    }
+    if (model is AtmosphereLevelModel) {
+      return "La paleta correcta debe ser coherente con la temática y las emociones del brief cinematográfico solicitado.";
+    }
+    if (model is SaturationLevelModel) {
+      return "El orden secuencial correcto debe ir de menor a mayor pureza: desde el color más grisáceo hasta el tono más puro y vivo.";
+    }
+    return "Esa no es la respuesta correcta. ¡Inténtalo de nuevo!";
   }
 
   Widget _buildDefaultInstructionCard(LevelModel datos) {

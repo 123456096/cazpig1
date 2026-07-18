@@ -57,15 +57,15 @@ class UserController extends ChangeNotifier {
       final age = prefs.getString("cazpig_age") ?? "";
       final name = prefs.getString("capig_name") ?? "Ele Cruz";
       final avatarUrl = prefs.getString("cazpig_avatar") ?? "assets/avatar/avatar1.jpeg";
-      final xp = prefs.getInt("cazpig_xp") ?? 1250;
-      final level = prefs.getInt("cazpig_level") ?? 5;
+      final xp = prefs.getInt("cazpig_xp") ?? 0;
+      final level = prefs.getInt("cazpig_level") ?? 1;
       final currentLevelReached = prefs.getInt("cazpig_current_level") ?? 1;
       final lives = prefs.getInt("cazpig_lives") ?? 5;
-      final streak = prefs.getInt("cazpig_streak") ?? 5;
-      final pigments = prefs.getInt("cazpig_pigments") ?? 591;
+      final streak = prefs.getInt("cazpig_streak") ?? 0;
+      final pigments = prefs.getInt("cazpig_pigments") ?? 0;
       final isOffline = prefs.getBool("cazpig_is_offline") ?? false;
-      final title = prefs.getString("cazpig_title") ?? "Cazador Experto";
-      final badges = prefs.getStringList("cazpig_badges") ?? ["Primer Trazo", "Racha Color", "Ojo Mágico"];
+      final title = prefs.getString("cazpig_title") ?? "Cazador Novato";
+      final badges = prefs.getStringList("cazpig_badges") ?? [];
 
       _currentUser = UserModel(
         email: email,
@@ -155,6 +155,7 @@ class UserController extends ChangeNotifier {
       );
     }
 
+    verificarYDesbloquearLogros();
     notifyListeners();
   }
 
@@ -165,7 +166,7 @@ class UserController extends ChangeNotifier {
       _currentUser = currentUser.copyWith(lives: nuevasVidas);
 
       final prefs = await SharedPreferences.getInstance();
-      if (nuevasVidas == 4) {
+      if (prefs.getString("cazpig_last_life_loss") == null) {
         await prefs.setString("cazpig_last_life_loss", DateTime.now().toIso8601String());
       }
       
@@ -225,12 +226,16 @@ class UserController extends ChangeNotifier {
   Future<void> _regenerarVidasPorTiempo() async {
     if (currentUser.lives >= 5) return;
     final prefs = await SharedPreferences.getInstance();
-    final timeStr = prefs.getString("cazpig_last_life_loss");
-    if (timeStr == null) return;
-
+    String? timeStr = prefs.getString("cazpig_last_life_loss");
+    if (timeStr == null) {
+      // Robustez: si le faltan vidas pero no hay marca de tiempo, la creamos ahora
+      await prefs.setString("cazpig_last_life_loss", DateTime.now().toIso8601String());
+      return;
+    }
+ 
     final lastLoss = DateTime.parse(timeStr);
     final diff = DateTime.now().difference(lastLoss).inMinutes;
-
+ 
     int vidasARecuperar = (diff / 5).floor();
     if (vidasARecuperar > 0) {
       int nuevasVidas = (currentUser.lives + vidasARecuperar).clamp(0, 5);
@@ -253,6 +258,12 @@ class UserController extends ChangeNotifier {
         await _dbService.modifyUserLivesAtomic(uid, deltaVidasRecuperadas);
       }
     }
+  }
+
+  /// Método público para forzar la verificación y regeneración de vidas
+  Future<void> verificarYRegenerarVidas() async {
+    await _regenerarVidasPorTiempo();
+    notifyListeners();
   }
 
   /// Verifica y calcula las rachas consecutivas de juego diario.
@@ -280,6 +291,7 @@ class UserController extends ChangeNotifier {
     if (currentUser.streak != rachaAnterior) {
       _sincronizarConFirebase();
     }
+    verificarYDesbloquearLogros();
   }
 
   Future<void> actualizarPerfil({required String nuevoNombre,required String nuevoAvatar})async{
@@ -292,6 +304,111 @@ class UserController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString("cazpig_name", nuevoNombre);
     await prefs.setString("cazpig_avatar", nuevoAvatar);
+    notifyListeners();
+  }
+
+  /// VALIDA E INSERTA NUEVOS LOGROS
+  void verificarYDesbloquearLogros() async {
+    final list = List<String>.from(currentUser.badges);
+    bool cambio = false;
+
+    void desbloquear(String insignia) {
+      if (!list.contains(insignia)) {
+        list.add(insignia);
+        cambio = true;
+      }
+    }
+
+    // 1. Primer Trazo: Completar el nivel 1
+    if (currentUser.currentLevelReached > 1) {
+      desbloquear("Primer Trazo");
+    }
+
+    // 2. Racha Color: Racha de 3 o más
+    if (currentUser.streak >= 3) {
+      desbloquear("Racha Color");
+    }
+
+    // 3. Estudiante Estrella: Nivel >= 3
+    if (currentUser.level >= 3) {
+      desbloquear("Estudiante Estrella");
+    }
+
+    // 4. Sin Mancharse: Llegar al nivel 5
+    if (currentUser.currentLevelReached >= 5) {
+      desbloquear("Sin Mancharse");
+    }
+
+    // 5. Ojo Entrenado: Llegar al nivel 10
+    if (currentUser.currentLevelReached >= 10) {
+      desbloquear("Ojo Entrenado");
+    }
+
+    // 6. Ojo Mágico: Llegar al nivel 15
+    if (currentUser.currentLevelReached >= 15) {
+      desbloquear("Ojo Mágico");
+    }
+
+    // 7. Cazador Definitivo: Llegar al nivel 25
+    if (currentUser.currentLevelReached >= 25) {
+      desbloquear("Cazador Definitivo");
+    }
+
+    // 8. Velocidad luz: Nivel >= 8
+    if (currentUser.level >= 8) {
+      desbloquear("Velocidad luz");
+    }
+
+    // 9. En la zona: Racha >= 5
+    if (currentUser.streak >= 5) {
+      desbloquear("En la zona");
+    }
+
+    // 10. Línea Recta: Racha >= 7 (nota: el perfil busca "Linea Recta" sin acento)
+    if (currentUser.streak >= 7) {
+      desbloquear("Linea Recta");
+    }
+
+    if (cambio) {
+      _currentUser = currentUser.copyWith(badges: list);
+      await guardarProgresoLocal();
+
+      final uid = _docId;
+      if (uid != null) {
+        await _dbService.saveUserProfile(uid, currentUser);
+      }
+      notifyListeners();
+    }
+  }
+
+  /// RESTABLECE TODO EL AVANCE
+  Future<void> reiniciarTodoElProgreso() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    final email = currentUser.email;
+    final age = currentUser.age;
+    final isOffline = currentUser.isOffline;
+
+    _currentUser = UserModel.initial(email: email, age: age, isOffline: isOffline);
+
+    await prefs.remove("cazpig_xp");
+    await prefs.remove("cazpig_level");
+    await prefs.remove("cazpig_current_level");
+    await prefs.remove("cazpig_lives");
+    await prefs.remove("cazpig_streak");
+    await prefs.remove("cazpig_pigments");
+    await prefs.remove("cazpig_title");
+    await prefs.remove("cazpig_badges");
+    await prefs.remove("cazpig_last_life_loss");
+    await prefs.remove("cazpig_last_login");
+
+    await guardarProgresoLocal();
+
+    final uid = _docId;
+    if (uid != null) {
+      await _dbService.saveUserProfile(uid, currentUser);
+    }
+
     notifyListeners();
   }
 }
