@@ -5,7 +5,7 @@ class ProgressHeader extends StatelessWidget implements PreferredSizeWidget {
   const ProgressHeader({super.key});
 
   @override
-  Size get preferredSize => const Size.fromHeight(60.0);
+  Size get preferredSize => const Size.fromHeight(52.0);
 
   @override
   Widget build(BuildContext context) {
@@ -17,105 +17,140 @@ class ProgressHeader extends StatelessWidget implements PreferredSizeWidget {
         final user = userController.currentUser;
 
         return Container(
-          height: 60,
-          color: const Color(0xFF141824), // Fondo de barra a juego con el mapa
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: SafeArea(
-            bottom: false,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          width: double.infinity,
+          height: 52,
+          color: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          alignment: Alignment.center,
+          child: SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: Stack(
               children: [
-                // 1. Mostrar estado de conexión
-                Row(
-                  children: [
-                    Icon(
-                      user.isOffline ? Icons.cloud_off_rounded : Icons.cloud_done_rounded,
-                      color: user.isOffline ? Colors.orange : Colors.greenAccent,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      user.isOffline ? "OFFLINE" : "EN LÍNEA",
-                      style: TextStyle(
-                        color: user.isOffline ? Colors.orange : Colors.greenAccent,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
+                // 1. IMAGEN DE FONDO
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/imagenes/barra.png',
+                    fit: BoxFit.fitWidth,
+                  ),
                 ),
 
-                // 2. Indicadores de Juego
-                Row(
-                  children: [
-                    // Corazón (Vidas)
-                    _buildIndicator(
-                      icon: Icons.favorite_rounded,
-                      iconColor: const Color(0xFFFF4B4B),
-                      text: '${user.lives}',
-                      onTap: () {
-                        if (user.lives < 5) {
-                          _mostrarCompraVidas(context, userController);
-                        }
-                      },
-                    ),
-                    const SizedBox(width: 14),
+                // 2. CAPA DE ICONOS Y TEXTOS CORREGIDA CON BLOQUES FIJOS
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(
+                      children: [
+                        // Espacio inicial exacto para saltarse el título "RUTA DEL PIGMENTO"
+                        const Spacer(flex: 38),
 
-                    // Fuego (Racha)
-                    _buildIndicator(
-                      icon: Icons.local_fire_department_rounded,
-                      iconColor: const Color(0xFFFF9600),
-                      text: '${user.streak}',
-                    ),
-                    const SizedBox(width: 14),
+                        // ==================== SECCIÓN VIDAS ====================
+                        Expanded(
+                          flex: 16,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Image.asset(
+                                'assets/imagenes/corazon.png',
+                                height: 21,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(width: 1), // Pegadito al recuadro gris
+                              Expanded(
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    if (user.lives < 5) {
+                                      _mostrarCompraVidas(context, userController);
+                                    }
+                                  },
+                                  child: Center(
+                                    child: Text(
+                                      '${user.lives}',
+                                      style: const TextStyle(
+                                        color: Color(0xFFFFF3E0),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
 
-                    // Diamante (Pigmentos)
-                    _buildIndicator(
-                      icon: Icons.diamond_rounded,
-                      iconColor: const Color(0xFF1CB0F6),
-                      text: '${user.pigments}',
+                        const Spacer(flex: 1), // Separador mínimo entre bloques
+
+                        // ==================== SECCIÓN RACHA ====================
+                        Expanded(
+                          flex: 16,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Image.asset(
+                                'assets/imagenes/horno.png',
+                                height: 21,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(width: 1), // Pegadito al recuadro gris
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    '${user.streak}',
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFF3E0),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const Spacer(flex: 1), // Separador mínimo entre bloques
+
+                        // ==================== SECCIÓN PIGMENTOS ====================
+                        Expanded(
+                          flex: 19, // Un pelincito más ancho para soportar cifras de 4 dígitos como "1791"
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Image.asset(
+                                'assets/imagenes/cristal.png',
+                                height: 21,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(width: 1), // Pegadito al recuadro gris
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    '${user.pigments}',
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFF3E0),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Espacio de salida final a la derecha del pergamino
+                        const Spacer(flex: 4),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildIndicator({
-    required IconData icon,
-    required Color iconColor,
-    required String text,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2C3545),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF3F4B62), width: 1.5),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: iconColor, size: 18),
-            const SizedBox(width: 6),
-            Text(
-              text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

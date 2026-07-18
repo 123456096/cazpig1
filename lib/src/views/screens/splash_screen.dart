@@ -46,27 +46,27 @@ class _SplashScreenState extends State<SplashScreen> {
               MaterialPageRoute(builder: (context) => const RegistroScreen()),
             );
           } else {
-        onComplete: () {
-          final firebaseUser = FirebaseAuth.instance.currentUser;
+            final firebaseUser = FirebaseAuth.instance.currentUser;
 
-          if (firebaseUser != null) {
-            // Sesión activa: ir al menú principal
-            final user = UserController().currentUser;
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MenuPrincipalScreen(
-                  correo: firebaseUser.email ?? user.email,
-                  edad: user.age,
+            if (firebaseUser != null) {
+              // Sesión activa: ir al menú principal
+              final user = UserController().currentUser;
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MenuPrincipalScreen(
+                    correo: firebaseUser.email ?? user.email,
+                    edad: user.age,
+                  ),
                 ),
-              ),
-            );
-          } else {
-            // Sin sesión: ir a login
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-            );
+              );
+            } else {
+              // Sin sesión: ir a login
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            }
           }
         },
       );
