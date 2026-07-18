@@ -6,7 +6,7 @@ import '../../services/database_service.dart';
 import '../../controllers/user_controller.dart';
 import '../../services/logging_service.dart'; // Monitoreo A09
 import 'menu_principal_screen.dart';
-﻿import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../controllers/user_controller.dart';
 import '../../services/auth_service.dart';
@@ -22,41 +22,43 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-// CORREGIDO: Se quitó la palabra "Is" que causaba el fallo de compilación
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailCtrl = TextEditingController();
+  final AuthService _authService = AuthService();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passCtrl = TextEditingController();
   bool _loading = false;
+  bool _showPassword = false;
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
+    _emailController.dispose();
     _passCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _intentarLogin() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      final authService = AuthService();
-      final UserCredential cred = await authService
-          .signInWithEmailAndPassword(email: _emailCtrl.text, password: _passCtrl.text);
+      await _authService.signInWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passCtrl.text,
+      );
 
-      final user = cred.user;
+      final user = _authService.currentUser;
 
       // VALIDACIÓN DE SEGURIDAD CRÍTICA (OWASP A07):
       // Si el correo no está verificado Y NO estamos en modo de desarrollo local...
       if (user != null && !user.emailVerified && !kDebugMode) {
         // Revocamos inmediatamente la sesión en el servidor
-        await authService.signOut();
+        await FirebaseAuth.instance.signOut();
         
         // Registramos un evento de alerta en el monitoreo centralizado (OWASP A09)
         await LoggingService.logSecurityEvent(
           nombreEvento: 'acceso_bloqueado_sin_verificar',
-          descripcion: 'El usuario ${_emailCtrl.text} intentó entrar sin verificación.',
-          detalles: {'user_email': _emailCtrl.text},
+          descripcion: 'El usuario ${_emailController.text} intentó entrar sin verificación.',
+          detalles: {'user_email': _emailController.text},
         );
 
         if (!mounted) return;
@@ -69,44 +71,6 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      final email = user?.email ?? '';
-      String age = '0';
-
-      if (email.isNotEmpty) {
-        final db = DatabaseService();
-        final profile = await db.getUserProfile(email.replaceAll('.', '_'));
-        if (profile != null) {
-          await UserController().inicializarDesdePerfil(profile);
-        } else {
-          UserController().inicializarUsuario(email: email, age: age, isOffline: false);
-        }
-      } else {
-        UserController().inicializarUsuario(email: email, age: age, isOffline: false);
-      }
-class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final AuthService _authService = AuthService();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool _isLoading = false;
-  bool _showPassword = false;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _intentarLogin() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-    try {
-      await _authService.signInWithEmailAndPassword(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
-      final user = FirebaseAuth.instance.currentUser;
       final email = user?.email ?? _emailController.text;
 
       await UserController().cargarProgresoLocal();
@@ -114,15 +78,20 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => MenuPrincipalScreen(correo: email, edad: age)),
+        MaterialPageRoute(
+          builder: (context) => MenuPrincipalScreen(
+            correo: email,
+            edad: UserController().currentUser.age,
+          ),
+        ),
       );
     } on FirebaseAuthException catch (e, stack) {
       // Monitoreo OWASP A09: Captura intentos fallidos
       if (e.code == 'wrong-password' || e.code == 'user-not-found' || e.code == 'invalid-credential') {
         await LoggingService.logSecurityEvent(
           nombreEvento: 'intento_login_fallido',
-          descripcion: 'Credenciales incorrectas para el correo ${_emailCtrl.text}',
-          detalles: {'user_email': _emailCtrl.text, 'error_code': e.code},
+          descripcion: 'Credenciales incorrectas para el correo ${_emailController.text}',
+          detalles: {'user_email': _emailController.text, 'error_code': e.code},
         );
       } else {
         await LoggingService.logException(e, stack, reason: 'Excepción de autenticación en Login Screen');
@@ -135,65 +104,13 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al iniciar sesión')));
     } finally {
-      if (mounted) setState(() => _loading = false);
-        MaterialPageRoute(
-          builder: (context) => MenuPrincipalScreen(
-            correo: email,
-            edad: UserController().currentUser.age,
-          ),
-        ),
-      );
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_authService.getErrorMessage(e))),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo iniciar sesion. Intenta de nuevo.')),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _loading = false); // Use _loading consistently
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Iniciar sesión')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _emailCtrl,
-                decoration: const InputDecoration(labelText: 'Correo'),
-                validator: (v) => v == null || v.isEmpty ? 'Ingresa tu correo' : null,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _passCtrl,
-                decoration: const InputDecoration(labelText: 'Contraseña'),
-                obscureText: true,
-                validator: (v) => v == null || v.isEmpty ? 'Ingresa tu contraseña' : null,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _loading ? null : _login,
-                child: _loading ? const CircularProgressIndicator() : const Text('Entrar'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -252,10 +169,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Correo
                         TextFormField(
-                          controller: _emailController,
+                          controller: _emailController, // Use _emailCtrl consistently
                           keyboardType: TextInputType.emailAddress,
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-                          decoration: _inputDecoration('Correo Electronico', Icons.email_outlined),
+                          decoration: _inputDecoration('Correo Electrónico', Icons.email_outlined),
                           validator: (value) {
                             if (value == null || value.isEmpty) return 'Ingresa tu correo';
                             if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return 'Correo invalido';
@@ -266,14 +183,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Contrasena
                         TextFormField(
-                          controller: _passwordController,
+                          controller: _passCtrl, // Use _passCtrl consistently
                           obscureText: !_showPassword,
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-                          decoration: _inputDecoration('Contrasena', Icons.lock_outline).copyWith(
+                          decoration: _inputDecoration('Contraseña', Icons.lock_outline).copyWith(
                             suffixIcon: IconButton(
-                              icon: Icon(
+                              icon: Icon( 
                                 _showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                color: Colors.cyanAccent.withOpacity(0.7),
+                                color: Colors.cyanAccent.withOpacity(0.7), // Consistent color
                               ),
                               onPressed: () => setState(() => _showPassword = !_showPassword),
                             ),
@@ -288,14 +205,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         GameButton(
                           backgroundColor: const Color(0xFF6C5CE7),
                           shadowColor: const Color(0xFF4A3DB5),
-                          onTap: _isLoading ? null : _intentarLogin,
-                          child: _isLoading
+                          onTap: _loading ? null : _intentarLogin, // Use _loading consistently
+                          child: _loading
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
                                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                 )
-                              : const Text(
+                              : const Text( // Consistent text
                                   'Iniciar Sesion',
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                                 ),
