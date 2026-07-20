@@ -23,7 +23,6 @@ const double _kSealSize     = 90.0;   // Tamaño del sello de cera
 const double _kHeaderHeight = 170.0;  // Alto reservado para el header
 
 /// Retorna el índice de fila (1-based) correspondiente a un nivel.
-/// Patrón: L1 en F1 (centro), L2 y L3 en F2 (lados), L4 en F3 (centro), L5 y L6 en F4 (lados)...
 int _getRowForLevel(int level) {
   int group = (level - 1) ~/ 3;
   int rem = (level - 1) % 3;
@@ -56,9 +55,9 @@ double _strandX(int row, bool isLeft, double screenWidth) {
   final double center = screenWidth * 0.5;
   final double amp = screenWidth * 0.28;
   if (row % 2 == 1) {
-    return center; // Fila central (unión)
+    return center; 
   } else {
-    return isLeft ? (center - amp) : (center + amp); // Fila separada (lados)
+    return isLeft ? (center - amp) : (center + amp); 
   }
 }
 
@@ -86,7 +85,6 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
     super.initState();
     final int active = _userController.currentUser.currentLevelReached;
     final int activeRow = _getRowForLevel(active);
-    // Scroll para mostrar el nodo activo cerca del centro de la pantalla
     final double initialOffset =
         max(0.0, _kHeaderHeight + (activeRow - 3) * _kRowHeight);
     _scrollController = ScrollController(initialScrollOffset: initialOffset);
@@ -115,7 +113,7 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
 
         return Stack(
           children: [
-            // ── 1. Fondo pergamino ─────────────────────────────────────────
+            // ── 1. Fondo pergamino (Completo de borde a borde) ──────────────
             Positioned.fill(
               child: Image.asset(
                 'assets/imagenes/fondo.jpeg',
@@ -138,7 +136,7 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
               ),
             ),
 
-            // ── 2. Scaffold con el mapa ────────────────────────────────────
+            // ── 2. Scaffold con el mapa protegido por SafeArea ──────────────
             Scaffold(
               backgroundColor: Colors.transparent,
               extendBody: true,
@@ -146,52 +144,58 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
                 currentIndex: 1,
                 onTap: (_) {},
               ),
-              body: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double sw = constraints.maxWidth;
-                  final double totalH =
-                      _kHeaderHeight + (totalRows + 1) * _kRowHeight + 180;
+              // El SafeArea envuelve el body completo para proteger la zona superior e inferior
+              body: SafeArea(
+                top: true,
+                bottom: true,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double sw = constraints.maxWidth;
+                    // Se añade un margen extra abajo para que la barra de navegación no pise los últimos niveles
+                    final double totalH =
+                        _kHeaderHeight + (totalRows + 1) * _kRowHeight + 220;
 
-                  return SingleChildScrollView(
-                    controller: _scrollController,
-                    child: SizedBox(
-                      width: sw,
-                      height: totalH,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          // ── Camino sinuoso punteado (Doble hélice pura) ──
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: _PathPainter(
-                                screenWidth: sw,
-                                currentLevel: currentLevel,
-                                totalRows: totalRows,
+                    return SingleChildScrollView(
+                      controller: _scrollController,
+                      child: SizedBox(
+                        width: sw,
+                        height: totalH,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            // ── Camino sinuoso punteado ──
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: _PathPainter(
+                                  screenWidth: sw,
+                                  currentLevel: currentLevel,
+                                  totalRows: totalRows,
+                                ),
                               ),
                             ),
-                          ),
 
-                          // ── Header de sección ───────────────────────────
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            child: _buildSectionHeader(),
-                          ),
-
-                          // ── Nodos de nivel ──────────────────────────────
-                          for (int lvl = 1; lvl <= _kTotalLevels; lvl++)
-                            ..._buildSealNode(
-                              context: context,
-                              level: lvl,
-                              currentLevel: currentLevel,
-                              screenWidth: sw,
+                            // ── Header de sección ──
+                            Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              child: _buildSectionHeader(),
                             ),
-                        ],
+
+                            // ── Nodos de nivel ──
+                            for (int lvl = 1; lvl <= _kTotalLevels; lvl++)
+                              ..._buildSealNode(
+                                context: context,
+                                level: lvl,
+                                currentLevel: currentLevel,
+                                screenWidth: sw,
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ],
@@ -203,7 +207,8 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
   // ── Header de sección ──────────────────────────────────────────────────────
   Widget _buildSectionHeader() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 52, 16, 8),
+      // Reducido el margen superior de 52 a 12 porque el SafeArea ya añade la separación del notch
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: const Color(0xFF3D2B1A).withOpacity(0.88),
@@ -298,7 +303,7 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
     );
   }
 
-  // ── Nodo de nivel: devuelve Positioned directos al canvas Stack ────────────
+  // ── Nodo de nivel ──────────────────────────────────────────────────────────
   List<Widget> _buildSealNode({
     required BuildContext context,
     required int level,
@@ -310,7 +315,6 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
     final bool isLocked    = level > currentLevel;
     final bool isChest     = level % 5 == 0;
 
-    // ── Paleta temática pergamino/pirata ────────────────────────────────────
     Color sealColor;
     if (isLocked) {
       sealColor = const Color(0xFF4A5268);
@@ -325,10 +329,9 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
       ];
       sealColor = shades[level % shades.length];
     } else {
-      sealColor = const Color(0xFFC8860A); // Activo
+      sealColor = const Color(0xFFC8860A); 
     }
 
-    // ── Contenido dentro del sello ───────────────────────────────────────
     Widget sealContent;
     if (isChest) {
       sealContent = Column(
@@ -365,7 +368,6 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
       );
     }
 
-    // ── Sello base ──────────────────────────────────────────────────────
     Widget sealWidget = Stack(
       alignment: Alignment.center,
       children: [
@@ -382,7 +384,6 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
       ],
     );
 
-    // Glow pulsante dorado para el nivel activo
     if (isActive) {
       sealWidget = AnimatedBuilder(
         animation: _pulseCtrl,
@@ -407,11 +408,9 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
     final double cx = _nodeX(level, screenWidth);
     final double cy = _nodeY(level);
     const double half = _kSealSize / 2;
-
-    final double rotationAngle = sin(level * 1.5) * 0.15; // Rotación orgánica
+    final double rotationAngle = sin(level * 1.5) * 0.15; 
 
     return [
-      // 1️⃣ Tooltip "¡JUGAR!" — encima del sello activo
       if (isActive)
         Positioned(
           left: cx - 55,
@@ -420,7 +419,6 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
           child: const FloatingTooltip(),
         ),
 
-      // 2️⃣ Sello de cera (Nivel) — centrado EXACTAMENTE en (cx, cy)
       Positioned(
         left: cx - half,
         top: cy - half,
@@ -438,7 +436,6 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
               alignment: Alignment.center,
               clipBehavior: Clip.none,
               children: [
-                // Sombra suave debajo del sello
                 Positioned(
                   top: 3,
                   left: 2,
@@ -457,7 +454,6 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
                 ),
                 sealWidget,
 
-                // Badge ✔ completado
                 if (isCompleted && !isChest)
                   Positioned(
                     bottom: 2,
@@ -480,7 +476,6 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
                     ),
                   ),
 
-                // Badge 🔒 bloqueado
                 if (isLocked)
                   Positioned(
                     bottom: 2,
@@ -502,7 +497,6 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
         ),
       ),
 
-      // 3️⃣ Estrellas — justo debajo del sello
       if (!isChest)
         Positioned(
           left: cx - 28,
@@ -530,7 +524,6 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
     );
   }
 
-  // ── Navegación ─────────────────────────────────────────────────────────────
   void _iniciarDesafiodeNivel(BuildContext context, int nivel) {
     if (_userController.currentUser.lives <= 0) {
       _mostrarCompraVidasDialog(context);
@@ -673,7 +666,7 @@ class _NivelSeleccionScreenState extends State<NivelSeleccionScreen>
   }
 }
 
-// ─── CustomPainter: ADN doble hélice pura (Hebras separadas y unidas) ──────────
+// ─── CustomPainter ───────────────────────────────────────────────────────────
 class _PathPainter extends CustomPainter {
   final double screenWidth;
   final int currentLevel;
@@ -687,18 +680,14 @@ class _PathPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Dibujamos las dos hebras entrelazadas independientes (izquierda y derecha)
     _drawStrand(canvas, isLeft: true);
     _drawStrand(canvas, isLeft: false);
   }
 
   void _drawStrand(Canvas canvas, {required bool isLeft}) {
     final Path path = Path();
-    
-    // Iniciar en el centro del primer nivel (Fila 1)
     path.moveTo(_strandX(1, isLeft, screenWidth), _rowY(1));
 
-    // Conectar fila a fila formando las burbujas/bucles de ADN
     for (int r = 1; r < totalRows; r++) {
       final double x1 = _strandX(r, isLeft, screenWidth);
       final double y1 = _rowY(r);
@@ -709,7 +698,6 @@ class _PathPainter extends CustomPainter {
       path.cubicTo(x1, midY, x2, midY, x2, y2);
     }
 
-    // Sombra de la hebra
     canvas.drawPath(
       path,
       Paint()
@@ -719,7 +707,6 @@ class _PathPainter extends CustomPainter {
         ..style = PaintingStyle.stroke,
     );
 
-    // Hebra base
     canvas.drawPath(
       path,
       Paint()
@@ -729,7 +716,6 @@ class _PathPainter extends CustomPainter {
         ..style = PaintingStyle.stroke,
     );
 
-    // Puntos (nucleótidos) a lo largo del camino
     _drawDotsOnPath(canvas, path);
   }
 
@@ -742,15 +728,13 @@ class _PathPainter extends CustomPainter {
       while (distance < m.length) {
         final ui.Tangent? t = m.getTangentForOffset(distance);
         if (t != null) {
-          // Un punto está desbloqueado si su Y es menor/igual al Y del nivel actual alcanzado
           final double currentYLimit = _nodeY(currentLevel);
           final bool unlocked = t.position.dy <= (currentYLimit + 10);
 
           final Color dotColor = unlocked
-              ? const Color(0xFFD4A017)   // Dorado pergamino — completado/activo
-              : const Color(0xFF3E485A);  // Gris azulado — bloqueado
+              ? const Color(0xFFD4A017)   
+              : const Color(0xFF3E485A);  
 
-          // Sombra del punto
           canvas.drawCircle(
             t.position + const Offset(0, 1.5),
             dotR,
@@ -758,7 +742,6 @@ class _PathPainter extends CustomPainter {
               ..color = Colors.black.withOpacity(0.35)
               ..style = PaintingStyle.fill,
           );
-          // Punto principal
           canvas.drawCircle(
             t.position,
             dotR,

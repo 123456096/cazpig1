@@ -31,6 +31,10 @@ class AuthService {
     );
   }
 
+  Future<void> signOut() async {
+    await _auth.signOut();
+  }
+
   // NUEVO: Comprobación estricta de verificación de correo electrónico
   bool isEmailVerified() {
     final user = _auth.currentUser;

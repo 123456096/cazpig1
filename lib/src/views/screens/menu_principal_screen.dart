@@ -59,14 +59,6 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                 child: ProgressHeader(),
               ),
 
-            // Si es Perfil o Ajustes, pintamos su barra superior premium simulada
-            if (_currentIndex != 1)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: _buildBarraAlternativa(),
-              ),
           ],
         ),
         bottomNavigationBar: AppNavigationBar(
@@ -77,29 +69,4 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     );
   }
 
-  // Estructura limpia para las otras dos pantallas (Perfil y Ajustes)
-  Widget _buildBarraAlternativa() {
-    String titulo = _currentIndex == 2 ? "Ajustes de Juego" : "Cazadores de Pigmentos";
-    
-    return Container(
-      height: 60,
-      color: const Color.fromARGB(255, 18, 17, 17),
-      alignment: Alignment.center,
-      child: SafeArea(
-        bottom: false,
-        child: ShaderMask(
-          shaderCallback: (bounds) => AppTheme.degradadoGlow.createShader(bounds),
-          child: Text(
-            titulo,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

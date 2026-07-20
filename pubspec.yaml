@@ -87,6 +87,8 @@ flutter:
     - assets/imagenes/horno.png
     - assets/imagenes/cristal.png
     - assets/imagenes/baja.png
+    - assets/imagenes/fichados.png
+    - assets/imagenes/tarjeta.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
